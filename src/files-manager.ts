@@ -1,7 +1,7 @@
 /*Class for managing a list of files, and their Anki requests.*/
 import { ParsedSettings, FileData } from './interfaces/settings-interface'
 import { App, TFile, TFolder, TAbstractFile, CachedMetadata, FileSystemAdapter, Notice } from 'obsidian'
-import { AllFile } from './file'
+import { CardFile } from './file'
 import * as AnkiConnect from './anki'
 import { basename } from 'path'
 
@@ -54,16 +54,16 @@ function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
 export class FileManager {
     app: App
     data: ParsedSettings
-    files: TFile[]
-    ownFiles: Array<AllFile>
+    tFiles: TFile[]
+    ownFiles: Array<CardFile>
     file_hashes: Record<string, string>
     requests_1_result: any
     added_media_set: Set<string>
 
-    constructor(app: App, data:ParsedSettings, files: TFile[], file_hashes: Record<string, string>, added_media: string[]) {
+    constructor(app: App, data:ParsedSettings, tFiles: TFile[], file_hashes: Record<string, string>, added_media: string[]) {
         this.app = app
         this.data = data
-        this.files = files
+        this.tFiles = tFiles
         this.ownFiles = []
         this.file_hashes = file_hashes
         this.added_media_set = new Set(added_media)
@@ -125,12 +125,12 @@ export class FileManager {
     }
 
     async genAllFiles() {
-        for (let file of this.files) {
+        for (let file of this.tFiles) {
             const content: string = await this.app.vault.read(file)
             const cache: CachedMetadata = this.app.metadataCache.getCache(file.path)
             const file_data = this.dataToFileData(file)
             this.ownFiles.push(
-                new AllFile(
+                new CardFile(
                     content,
                     file.path,
                     this.data.add_file_link ? this.getUrl(file) : "",
@@ -143,7 +143,7 @@ export class FileManager {
 
     async initialiseFiles() {
         await this.genAllFiles()
-        let files_changed: Array<AllFile> = []
+        let files_changed: Array<CardFile> = []
         let obfiles_changed: TFile[] = []
         for (let index in this.ownFiles) {
             const i = parseInt(index)
@@ -153,11 +153,11 @@ export class FileManager {
                 console.info("Scanning ", file.path, "as it's changed or new.")
                 file.scanFile()
                 files_changed.push(file)
-                obfiles_changed.push(this.files[i])
+                obfiles_changed.push(this.tFiles[i])
             }
         }
         this.ownFiles = files_changed
-        this.files = obfiles_changed
+        this.tFiles = obfiles_changed
     }
 
     async requests_1() {
@@ -267,7 +267,7 @@ export class FileManager {
         for (let index in this.ownFiles) {
             let i: number = parseInt(index)
             let ownFile = this.ownFiles[i]
-            let obFile = this.files[i]
+            let obFile = this.tFiles[i]
             ownFile.tags = tag_list
             ownFile.writeIDs()
             ownFile.removeEmpties()

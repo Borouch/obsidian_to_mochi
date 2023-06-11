@@ -69,7 +69,7 @@ function* findignore(pattern: RegExp, text: string, ignore_spans: Array<[number,
 	}
 }
 
-abstract class AbstractFile {
+abstract class AbstractCardFile {
     file: string
     path: string
     url: string
@@ -243,12 +243,12 @@ abstract class AbstractFile {
 
 }
 
-export class AllFile extends AbstractFile {
+export class CardFile extends AbstractCardFile {
     ignore_spans: [number, number][]
     custom_regexps: Record<string, string>
-    inline_notes_to_add: AnkiConnectNote[]
+    inline_cards_to_add: AnkiConnectNote[]
     inline_id_indexes: number[]
-    regex_notes_to_add: AnkiConnectNote[]
+    regex_cards_to_add: AnkiConnectNote[]
     regex_id_indexes: number[]
 
     constructor(file_contents: string, path:string, url: string, data: FileData, file_cache: CachedMetadata) {
@@ -281,8 +281,8 @@ export class AllFile extends AbstractFile {
         this.setup_global_tags()
         this.add_spans_to_ignore()
         this.notes_to_add = []
-        this.inline_notes_to_add = []
-        this.regex_notes_to_add = []
+        this.inline_cards_to_add = []
+        this.regex_cards_to_add = []
         this.id_indexes = []
         this.inline_id_indexes = []
         this.regex_id_indexes = []
@@ -348,7 +348,7 @@ export class AllFile extends AbstractFile {
             if (parsed.identifier == null) {
                 // Need to make sure global_tags get added
                 parsed.note.tags.push(...this.global_tags.split(TAG_SEP))
-                this.inline_notes_to_add.push(parsed.note)
+                this.inline_cards_to_add.push(parsed.note)
                 this.inline_id_indexes.push(position)
             } else if (!this.data.EXISTING_IDS.includes(parsed.identifier)) {
                 // Need to show an error
@@ -401,7 +401,7 @@ export class AllFile extends AbstractFile {
                             continue
                         }
                         parsed.note.tags.push(...this.global_tags.split(TAG_SEP))
-                        this.regex_notes_to_add.push(parsed.note)
+                        this.regex_cards_to_add.push(parsed.note)
                         this.regex_id_indexes.push(match.index + match[0].length)
                     }
                 }
@@ -419,7 +419,7 @@ export class AllFile extends AbstractFile {
                 this.search(note_type, regexp_str)
             }
         }
-        this.all_notes_to_add = this.notes_to_add.concat(this.inline_notes_to_add).concat(this.regex_notes_to_add)
+        this.all_notes_to_add = this.notes_to_add.concat(this.inline_cards_to_add).concat(this.regex_cards_to_add)
         this.scanDeletions()
     }
 
@@ -449,7 +449,7 @@ export class AllFile extends AbstractFile {
         let regex_inserts: [number, string][] = []
         this.regex_id_indexes.forEach(
             (id_position: number, index: number) => {
-                const identifier: number | null = this.note_ids[index + this.notes_to_add.length + this.inline_notes_to_add.length] // Since regular then inline then regex
+                const identifier: number | null = this.note_ids[index + this.notes_to_add.length + this.inline_cards_to_add.length] // Since regular then inline then regex
                 if (identifier) {
                     regex_inserts.push([id_position, "\n" + id_to_str(identifier, false, this.data.comment)])
                 }
