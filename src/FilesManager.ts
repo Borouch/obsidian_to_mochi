@@ -1,9 +1,9 @@
 /*Class for managing a list of files, and their Anki requests.*/
-import { ParsedSettings, FileData } from './interfaces/settings-interface'
-import { App, TFile, TFolder, TAbstractFile, CachedMetadata, FileSystemAdapter, Notice } from 'obsidian'
-import { CardFile } from './file'
+import {CardsFileSettingsData, ParsedSettingsData} from './interfaces/ISettings'
+import {App, CachedMetadata, FileSystemAdapter, Notice, TAbstractFile, TFile, TFolder} from 'obsidian'
+import {CardsFile} from './CardsFile'
 import * as AnkiConnect from './anki'
-import { basename } from 'path'
+import {basename} from 'path'
 
 interface addNoteResponse {
     result: number,
@@ -53,19 +53,19 @@ function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
 
 export class FileManager {
     app: App
-    data: ParsedSettings
+    data: ParsedSettingsData
     tFiles: TFile[]
-    ownFiles: Array<CardFile>
-    file_hashes: Record<string, string>
+    cardsFiles: Array<CardsFile>
+    tFileHashes: Record<string, string>
     requests_1_result: any
     added_media_set: Set<string>
 
-    constructor(app: App, data:ParsedSettings, tFiles: TFile[], file_hashes: Record<string, string>, added_media: string[]) {
+    constructor(app: App, data: ParsedSettingsData, tFiles: TFile[], file_hashes: Record<string, string>, added_media: string[]) {
         this.app = app
         this.data = data
         this.tFiles = tFiles
-        this.ownFiles = []
-        this.file_hashes = file_hashes
+        this.cardsFiles = []
+        this.tFileHashes = file_hashes
         this.added_media_set = new Set(added_media)
     }
 
@@ -109,28 +109,28 @@ export class FileManager {
         return tags_list
     }
 
-    dataToFileData(file: TFile): FileData {
-        const folder_path_list: TFolder[] = this.getFolderPathList(file)
-        let result: FileData = JSON.parse(JSON.stringify(this.data))
+    dataToCardsFileSettingsData(file: TFile): CardsFileSettingsData {
+        const folderPathList: TFolder[] = this.getFolderPathList(file)
+        let result: CardsFileSettingsData = JSON.parse(JSON.stringify(this.data))
         //Lost regexp, so have to get them back
         result.FROZEN_REGEXP = this.data.FROZEN_REGEXP
         result.DECK_REGEXP = this.data.DECK_REGEXP
         result.TAG_REGEXP = this.data.TAG_REGEXP
-        result.NOTE_REGEXP = this.data.NOTE_REGEXP
+        result.CARD_REGEXP = this.data.CARD_REGEXP
         result.INLINE_REGEXP = this.data.INLINE_REGEXP
         result.EMPTY_REGEXP = this.data.EMPTY_REGEXP
-        result.template.deckName = this.getDefaultDeck(file, folder_path_list)
-        result.template.tags = this.getDefaultTags(file, folder_path_list)
+        result.template.deckName = this.getDefaultDeck(file, folderPathList)
+        result.template.tags = this.getDefaultTags(file, folderPathList)
         return result
     }
 
-    async genAllFiles() {
+    async genCardsFiles() {
         for (let file of this.tFiles) {
             const content: string = await this.app.vault.read(file)
             const cache: CachedMetadata = this.app.metadataCache.getCache(file.path)
-            const file_data = this.dataToFileData(file)
-            this.ownFiles.push(
-                new CardFile(
+            const file_data = this.dataToCardsFileSettingsData(file)
+            this.cardsFiles.push(
+                new CardsFile(
                     content,
                     file.path,
                     this.data.add_file_link ? this.getUrl(file) : "",
@@ -142,35 +142,35 @@ export class FileManager {
     }
 
     async initialiseFiles() {
-        await this.genAllFiles()
-        let files_changed: Array<CardFile> = []
-        let obfiles_changed: TFile[] = []
-        for (let index in this.ownFiles) {
+        await this.genCardsFiles()
+        let changedCardFiles: Array<CardsFile> = []
+        let changedTFiles: TFile[] = []
+        for (let index in this.cardsFiles) {
             const i = parseInt(index)
-            let file = this.ownFiles[i]
-            if (!(this.file_hashes.hasOwnProperty(file.path) && file.getHash() === this.file_hashes[file.path])) {
+            let cardsFile = this.cardsFiles[i]
+            if (!(this.tFileHashes.hasOwnProperty(cardsFile.path) && cardsFile.getHash() === this.tFileHashes[cardsFile.path])) {
                 //Indicates it's changed or new
-                console.info("Scanning ", file.path, "as it's changed or new.")
-                file.scanFile()
-                files_changed.push(file)
-                obfiles_changed.push(this.tFiles[i])
+                console.info("Scanning ", cardsFile.path, "as it's changed or new.")
+                cardsFile.scanFile()
+                changedCardFiles.push(cardsFile)
+                changedTFiles.push(this.tFiles[i])
             }
         }
-        this.ownFiles = files_changed
-        this.tFiles = obfiles_changed
+        this.cardsFiles = changedCardFiles
+        this.tFiles = changedTFiles
     }
 
     async requests_1() {
         let requests: AnkiConnect.AnkiConnectRequest[] = []
         let temp: AnkiConnect.AnkiConnectRequest[] = []
         console.info("Requesting addition of notes into Anki...")
-        for (let file of this.ownFiles) {
+        for (let file of this.cardsFiles) {
             temp.push(file.getAddNotes())
         }
         requests.push(AnkiConnect.multi(temp))
         temp = []
         console.info("Requesting card IDs of notes to be edited...")
-        for (let file of this.ownFiles) {
+        for (let file of this.cardsFiles) {
             temp.push(file.getNoteInfo())
         }
         requests.push(AnkiConnect.multi(temp))
@@ -178,27 +178,26 @@ export class FileManager {
         console.info("Requesting tag list...")
         requests.push(AnkiConnect.getTags())
         console.info("Requesting update of fields of existing notes")
-        for (let file of this.ownFiles) {
+        for (let file of this.cardsFiles) {
             temp.push(file.getUpdateFields())
         }
         requests.push(AnkiConnect.multi(temp))
         temp = []
         console.info("Requesting deletion of notes..")
-        for (let file of this.ownFiles) {
+        for (let file of this.cardsFiles) {
             temp.push(file.getDeleteNotes())
         }
         requests.push(AnkiConnect.multi(temp))
         temp = []
         console.info("Requesting addition of media...")
-        for (let file of this.ownFiles) {
+        for (let file of this.cardsFiles) {
             const mediaLinks = difference(file.formatter.detectedMedia, this.added_media_set)
             for (let mediaLink of mediaLinks) {
                 console.log("Adding media file: ", mediaLink)
                 const dataFile = this.app.metadataCache.getFirstLinkpathDest(mediaLink, file.path)
                 if (!(dataFile)) {
                     console.warn("Couldn't locate media file ", mediaLink)
-                }
-                else {
+                } else {
                     // Located successfully, so treat as if we've added the media
                     this.added_media_set.add(mediaLink)
                     const realPath = (this.app.vault.adapter as FileSystemAdapter).getFullPath(dataFile.path)
@@ -226,7 +225,7 @@ export class FileManager {
         let note_ids_array_by_file: Requests1Result[0]["result"]
         try {
             note_ids_array_by_file = AnkiConnect.parse(response[0])
-        } catch(error) {
+        } catch (error) {
             console.error("Error: ", error)
             note_ids_array_by_file = response[0].result
         }
@@ -234,11 +233,11 @@ export class FileManager {
         const tag_list: string[] = AnkiConnect.parse(response[2])
         for (let index in note_ids_array_by_file) {
             let i: number = parseInt(index)
-            let file = this.ownFiles[i]
+            let file = this.cardsFiles[i]
             let file_response: addNoteResponse[]
             try {
                 file_response = AnkiConnect.parse(note_ids_array_by_file[i])
-            } catch(error) {
+            } catch (error) {
                 console.error("Error: ", error)
                 file_response = note_ids_array_by_file[i].result
             }
@@ -256,7 +255,7 @@ export class FileManager {
         }
         for (let index in note_info_array_by_file) {
             let i: number = parseInt(index)
-            let file = this.ownFiles[i]
+            let file = this.cardsFiles[i]
             const file_response = AnkiConnect.parse(note_info_array_by_file[i])
             let temp: number[] = []
             for (let note_response of file_response) {
@@ -264,9 +263,9 @@ export class FileManager {
             }
             file.card_ids = temp
         }
-        for (let index in this.ownFiles) {
+        for (let index in this.cardsFiles) {
             let i: number = parseInt(index)
-            let ownFile = this.ownFiles[i]
+            let ownFile = this.cardsFiles[i]
             let obFile = this.tFiles[i]
             ownFile.tags = tag_list
             ownFile.writeIDs()
@@ -280,7 +279,7 @@ export class FileManager {
 
     getHashes(): Record<string, string> {
         let result: Record<string, string> = {}
-        for (let file of this.ownFiles) {
+        for (let file of this.cardsFiles) {
             result[file.path] = file.getHash()
         }
         return result
@@ -290,18 +289,18 @@ export class FileManager {
         let requests: AnkiConnect.AnkiConnectRequest[] = []
         let temp: AnkiConnect.AnkiConnectRequest[] = []
         console.info("Requesting cards to be moved to target deck...")
-        for (let file of this.ownFiles) {
+        for (let file of this.cardsFiles) {
             temp.push(file.getChangeDecks())
         }
         requests.push(AnkiConnect.multi(temp))
         temp = []
         console.info("Requesting tags to be replaced...")
-        for (let file of this.ownFiles) {
+        for (let file of this.cardsFiles) {
             temp.push(file.getClearTags())
         }
         requests.push(AnkiConnect.multi(temp))
         temp = []
-        for (let file of this.ownFiles) {
+        for (let file of this.cardsFiles) {
             temp.push(file.getAddTags())
         }
         requests.push(AnkiConnect.multi(temp))
@@ -309,7 +308,6 @@ export class FileManager {
         await AnkiConnect.invoke('multi', {actions: requests})
         console.info("All done!")
     }
-
 
 
 }

@@ -1,13 +1,13 @@
 import {addIcon, Notice, Plugin} from 'obsidian'
 import * as AnkiConnect from './anki'
-import {ParsedSettings, PluginSettings} from './interfaces/settings-interface'
+import {ParsedSettingsData, PluginSettings} from './interfaces/settings-interface'
 import {SettingsTab} from './settings'
 import {ANKI_ICON} from './constants'
-import {settingToData} from './setting-to-data'
-import {FileManager} from './files-manager'
 import {debug} from "@src/utils/logger";
 
 import axios from "axios";
+import {settingToData} from "@src/SettingToData";
+import {FileManager} from "@src/FilesManager";
 axios.defaults.baseURL = 'http://app.mochi.cards/api';
 axios.defaults.headers.common['Accept']='application/json'
 export default class MyPlugin extends Plugin {
@@ -163,14 +163,16 @@ export default class MyPlugin extends Plugin {
     async scanVault() {
         new Notice('Scanning vault, check console for details...');
         console.info("Checking connection to Anki...")
+
         try {
             await AnkiConnect.invoke('modelNames')
         } catch (e) {
             new Notice("Error, couldn't connect to Anki! Check console for error message.")
             return
         }
+
         new Notice("Successfully connected to Anki! This could take a few minutes - please don't close Anki until the plugin is finished")
-        const data: ParsedSettings = await settingToData(this.app, this.settings, this.fieldsDict)
+        const data: ParsedSettingsData = await settingToData(this.app, this.settings, this.fieldsDict)
         const manager = new FileManager(this.app, data, this.app.vault.getMarkdownFiles(), this.fileHashes, this.addedMedia)
         debug((manager))
         await manager.initialiseFiles()
