@@ -2,8 +2,19 @@
     "compilerOptions": {
         "lib": ["esnext", "dom"],
         "downlevelIteration": true,
-        "target": "esnext",
-        "moduleResolution": "node",
         "allowSyntheticDefaultImports": true,
+        "baseUrl": "./",
+        "paths": {
+            "@src/*": ["src/*"]
+        },
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "useDefineForClassFields": true,
+        "resolveJsonModule": true,
+        "allowJs": true,
+        "checkJs": true,
+        "isolatedModules": true
+
     }
 }
