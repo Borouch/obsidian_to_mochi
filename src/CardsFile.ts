@@ -2,13 +2,15 @@
 
 import { FROZEN_FIELDS_DICT } from './interfaces/IField'
 import { AnkiConnectNote, AnkiConnectNoteAndID } from './interfaces/IAnkiConnectNote'
-import { Card, InlineNote, RegexNote, CLOZE_ERROR, NOTE_TYPE_ERROR, TAG_SEP, ID_REGEXP_STR, TAG_REGEXP_STR } from './Card'
+import { BaseCard, CLOZE_ERROR, NOTE_TYPE_ERROR, TAG_SEP, ID_REGEXP_STR, TAG_REGEXP_STR } from './models/BaseCard'
 import { Md5 } from 'ts-md5/dist/md5';
 import * as AnkiConnect from './anki'
 import * as c from './constants'
 import { FormatConverter } from './format'
 import { CachedMetadata, HeadingCache } from 'obsidian'
 import {CardsFileSettingsData} from "@src/interfaces/ISettings";
+import {RegexCard} from "@src/models/RegexCard";
+import {InlineCard} from "@src/modeI/InlineCard.ts";
 
 const double_regexp: RegExp = /(?:\r\n|\r|\n)((?:\r\n|\r|\n)(?:<!--)?ID: \d+)/g
 
@@ -116,7 +118,7 @@ abstract class AbstractCardsFile {
         for (let match of this.contents.matchAll(this.data.FROZEN_REGEXP)) {
             const [note_type, fields]: [string, string] = [match[1], match[2]]
             const virtual_note = note_type + "\n" + fields
-            const parsed_fields: Record<string, string> = new Card(
+            const parsed_fields: Record<string, string> = new BaseCard(
                 virtual_note,
                 this.data.fields_dict,
                 this.data.curly_cloze,
@@ -245,7 +247,7 @@ abstract class AbstractCardsFile {
 
 export class CardsFile extends AbstractCardsFile {
     ignore_spans: [number, number][]
-    custom_regexps: Record<string, string>
+    custom_note_type_regexps: Record<string, string>
     inlineCardsToAdd: AnkiConnectNote[]
     inline_id_indexes: number[]
     regexCardsToAdd: AnkiConnectNote[]
@@ -253,7 +255,7 @@ export class CardsFile extends AbstractCardsFile {
 
     constructor(file_contents: string, path:string, url: string, data: CardsFileSettingsData, file_cache: CachedMetadata) {
         super(file_contents, path, url, data, file_cache)
-        this.custom_regexps = data.custom_regexps
+        this.custom_note_type_regexps = data.custom_regexps
     }
 
     add_spans_to_ignore() {
@@ -298,7 +300,7 @@ export class CardsFile extends AbstractCardsFile {
         for (let card_match of this.contents.matchAll(this.data.CARD_REGEXP)) {
             // That second thing essentially gets the index of the end of the first capture group.
             let [cardContent, position]: [string, number] = [card_match[1], card_match.index + card_match[0].indexOf(card_match[1]) + card_match[1].length]
-            let parsed:AnkiConnectNoteAndID = new Card(
+            let parsed:AnkiConnectNoteAndID = new BaseCard(
                 cardContent,
                 this.data.fields_dict,
                 this.data.curly_cloze,
@@ -338,7 +340,7 @@ export class CardsFile extends AbstractCardsFile {
         for (let note_match of this.contents.matchAll(this.data.INLINE_REGEXP)) {
             let [note, position]: [string, number] = [note_match[1], note_match.index + note_match[0].indexOf(note_match[1]) + note_match[1].length]
             // That second thing essentially gets the index of the end of the first capture group.
-            let parsed = new InlineNote(
+            let parsed = new InlineCard(
                 note,
                 this.data.fields_dict,
                 this.data.curly_cloze,
@@ -368,10 +370,11 @@ export class CardsFile extends AbstractCardsFile {
         }
     }
 
-    search(note_type: string, regexp_str: string) {
+    searchContentRegexpMatch(note_type: string, regexp_str: string) {
         //Search the file for regex matches
         //ignoring matches inside ignore_spans,
         //and adding any matches to ignore_spans.
+        debugger
         for (let search_id of [true, false]) {
             for (let search_tags of [true, false]) {
                 let id_str = search_id ? ID_REGEXP_STR : ""
@@ -379,7 +382,7 @@ export class CardsFile extends AbstractCardsFile {
                 let regexp: RegExp = new RegExp(regexp_str + tag_str + id_str, 'gm')
                 for (let match of findignore(regexp, this.contents, this.ignore_spans)) {
                     this.ignore_spans.push([match.index, match.index + match[0].length])
-                    const parsed: AnkiConnectNoteAndID = new RegexNote(
+                    const parsed: AnkiConnectNoteAndID = new RegexCard(
                         match, note_type, this.data.fields_dict,
                         search_tags, search_id, this.data.curly_cloze, this.data.highlights_to_cloze, this.formatter
                     ).parse(
@@ -422,10 +425,10 @@ export class CardsFile extends AbstractCardsFile {
         this.setupScan()
         this.scanCards()
         this.scanInlineCards()
-        for (let note_type in this.custom_regexps) {
-            const regexp_str: string = this.custom_regexps[note_type]
+        for (let note_type in this.custom_note_type_regexps) {
+            const regexp_str: string = this.custom_note_type_regexps[note_type]
             if (regexp_str) {
-                this.search(note_type, regexp_str)
+                this.searchContentRegexpMatch(note_type, regexp_str)
             }
         }
         this.allTypeAnkiCardsToAdd = this.ankiCardsToAdd.concat(this.inlineCardsToAdd).concat(this.regexCardsToAdd)

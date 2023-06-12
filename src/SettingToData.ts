@@ -1,7 +1,7 @@
 import { PluginSettings, ParsedSettingsData } from './interfaces/settings-interface'
 import { App } from 'obsidian'
 import * as AnkiConnect from './anki'
-import { ID_REGEXP_STR } from './Card'
+import { ID_REGEXP_STR } from './models/BaseCard'
 import { escapeRegex } from './constants'
 
 export async function settingToData(app: App, settings: PluginSettings, fields_dict: Record<string, string[]>): Promise<ParsedSettingsData> {

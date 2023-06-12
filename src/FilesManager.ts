@@ -270,8 +270,8 @@ export class FileManager {
             cardsFile.ankiTags = ankiTags
             cardsFile.writeIDs()
             cardsFile.removeEmpties()
-            if (cardsFile.file !== cardsFile.original_file) {
-                await this.app.vault.modify(tFile, cardsFile.file)
+            if (cardsFile.contents !== cardsFile.originalContents) {
+                await this.app.vault.modify(tFile, cardsFile.contents)
             }
         }
         await this.requests_2()

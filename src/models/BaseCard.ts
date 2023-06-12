@@ -1,0 +1,93 @@
+/*Manages parsing notes into a dictionary formatted for AnkiConnect.
+
+Input must be the note text.
+Does NOT deal with finding the note in the file.*/
+
+import {AnkiConnectNote} from "@src/interfaces/IAnkiConnectNote";
+import {AbstractCard} from "@src/models/AbstractCard";
+
+
+export const TAG_PREFIX:string = "Tags: "
+export const TAG_SEP:string = " "
+export const ID_REGEXP_STR: string = String.raw`\n?(?:<!--)?(?:ID: (\d+).*)`
+export const TAG_REGEXP_STR: string = String.raw`(Tags: .*)`
+export const OBS_TAG_REGEXP: RegExp = /#(\w+)/g
+
+export const ANKI_CLOZE_REGEXP: RegExp = /{{c\d+::[\s\S]+?}}/
+export const CLOZE_ERROR: number = 42
+export const NOTE_TYPE_ERROR: number = 69
+
+export function hasClozes(text: string): boolean {
+	/*Checks whether text actually has cloze deletions.*/
+	return ANKI_CLOZE_REGEXP.test(text)
+}
+
+export function noteHasClozes(note: AnkiConnectNote): boolean {
+	/*Checks whether a note has cloze deletions in any of its fields.*/
+	for (let i in note.fields) {
+		if (hasClozes(note.fields[i])) {
+			return true
+		}
+	}
+	return false
+}
+
+export class BaseCard extends AbstractCard {
+
+    getSplitText(): string[] {
+        return this.text.split("\n")
+    }
+
+    getIdentifier(): number | null {
+        if (this.ID_REGEXP.test(this.contentLines[this.contentLines.length-1])) {
+            return parseInt(this.ID_REGEXP.exec(this.contentLines.pop())[1])
+        } else {
+            return null
+        }
+    }
+
+    getTags(): string[] {
+        if (this.contentLines[this.contentLines.length-1].startsWith(TAG_PREFIX)) {
+            return this.contentLines.pop().slice(TAG_PREFIX.length).split(TAG_SEP)
+        } else {
+            return []
+        }
+    }
+
+    getNoteType(): string {
+        return this.contentLines[0]
+    }
+
+    fieldFromLine(line: string): [string, string] {
+        /*From a given line, determine the next field to add text into.
+
+        Then, return the stripped line, and the field.*/
+        for (let field of this.field_names) {
+            if (line.startsWith(field + ":")) {
+                return [line.slice((field + ":").length), field]
+            }
+        }
+        return [line,this.currentField]
+    }
+
+    getFields(): Record<string, string> {
+        let fields: Record<string, string> = {}
+        for (let field of this.field_names) {
+            fields[field] = ""
+        }
+        for (let line of this.contentLines.slice(1)) {
+            [line, this.currentField] = this.fieldFromLine(line)
+            fields[this.currentField] += line + "\n"
+        }
+        for (let key in fields) {
+            fields[key] = this.formatter.format(
+                fields[key].trim(),
+                this.cardType.includes("Cloze") && this.curly_cloze,
+				this.highlights_to_cloze
+            ).trim()
+        }
+        return fields
+    }
+
+}
+
