@@ -10,7 +10,7 @@ export interface AnkiConnectNote {
 }
 
 export interface AnkiConnectNoteAndID {
-	note: AnkiConnectNote,
+	ankiNote: AnkiConnectNote,
 	identifier: number | null
 }
 

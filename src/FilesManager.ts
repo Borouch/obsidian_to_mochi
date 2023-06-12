@@ -141,7 +141,7 @@ export class FileManager {
         }
     }
 
-    async initialiseFiles() {
+    async detectFilesChanges() {
         await this.genCardsFiles()
         let changedCardFiles: Array<CardsFile> = []
         let changedTFiles: TFile[] = []
@@ -151,7 +151,7 @@ export class FileManager {
             if (!(this.tFileHashes.hasOwnProperty(cardsFile.path) && cardsFile.getHash() === this.tFileHashes[cardsFile.path])) {
                 //Indicates it's changed or new
                 console.info("Scanning ", cardsFile.path, "as it's changed or new.")
-                cardsFile.scanFile()
+                cardsFile.scanFileForCardsCRUD()
                 changedCardFiles.push(cardsFile)
                 changedTFiles.push(this.tFiles[i])
             }
@@ -230,7 +230,7 @@ export class FileManager {
             note_ids_array_by_file = response[0].result
         }
         const note_info_array_by_file = AnkiConnect.parse(response[1])
-        const tag_list: string[] = AnkiConnect.parse(response[2])
+        const ankiTags: string[] = AnkiConnect.parse(response[2])
         for (let index in note_ids_array_by_file) {
             let i: number = parseInt(index)
             let file = this.cardsFiles[i]
@@ -241,15 +241,15 @@ export class FileManager {
                 console.error("Error: ", error)
                 file_response = note_ids_array_by_file[i].result
             }
-            file.note_ids = []
+            file.ankiCardIds = []
             for (let index in file_response) {
                 let i = parseInt(index)
                 let response = file_response[i]
                 try {
-                    file.note_ids.push(AnkiConnect.parse(response))
+                    file.ankiCardIds.push(AnkiConnect.parse(response))
                 } catch (error) {
-                    console.warn("Failed to add note ", file.all_notes_to_add[i], " in file", file.path, " due to error ", error)
-                    file.note_ids.push(response.result)
+                    console.warn("Failed to add note ", file.allTypeAnkiCardsToAdd[i], " in file", file.path, " due to error ", error)
+                    file.ankiCardIds.push(response.result)
                 }
             }
         }
@@ -261,17 +261,17 @@ export class FileManager {
             for (let note_response of file_response) {
                 temp.push(...note_response.cards)
             }
-            file.card_ids = temp
+            file.cardIds = temp
         }
         for (let index in this.cardsFiles) {
             let i: number = parseInt(index)
-            let ownFile = this.cardsFiles[i]
-            let obFile = this.tFiles[i]
-            ownFile.tags = tag_list
-            ownFile.writeIDs()
-            ownFile.removeEmpties()
-            if (ownFile.file !== ownFile.original_file) {
-                await this.app.vault.modify(obFile, ownFile.file)
+            let cardsFile = this.cardsFiles[i]
+            let tFile = this.tFiles[i]
+            cardsFile.ankiTags = ankiTags
+            cardsFile.writeIDs()
+            cardsFile.removeEmpties()
+            if (cardsFile.file !== cardsFile.original_file) {
+                await this.app.vault.modify(tFile, cardsFile.file)
             }
         }
         await this.requests_2()

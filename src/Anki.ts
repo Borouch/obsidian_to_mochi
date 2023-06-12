@@ -1,6 +1,7 @@
+import {AnkiConnectNote} from "@src/interfaces/IAnkiConnectNote";
+
 const ANKI_PORT: number = 8765
 
-import { AnkiConnectNote } from './interfaces/note-interface'
 
 export interface AnkiConnectRequest {
 	action: string,

@@ -1,6 +1,5 @@
 import {addIcon, Notice, Plugin} from 'obsidian'
 import * as AnkiConnect from './anki'
-import {ParsedSettingsData, PluginSettings} from './interfaces/settings-interface'
 import {SettingsTab} from './settings'
 import {ANKI_ICON} from './constants'
 import {debug} from "@src/utils/logger";
@@ -8,16 +7,17 @@ import {debug} from "@src/utils/logger";
 import axios from "axios";
 import {settingToData} from "@src/SettingToData";
 import {FileManager} from "@src/FilesManager";
+import {ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
 axios.defaults.baseURL = 'http://app.mochi.cards/api';
 axios.defaults.headers.common['Accept']='application/json'
-export default class MyPlugin extends Plugin {
+export default class ObsidianToMochiPlugin extends Plugin {
 
     settings: PluginSettings
     noteTypes: Array<string>
     fieldsDict: Record<string, string[]>
     addedMedia: string[]
     fileHashes: Record<string, string>
-
+    scheduleId:any
     async getDefaultSettings(): Promise<PluginSettings> {
         let settings: PluginSettings = {
             CUSTOM_REGEXPS: {},
@@ -175,7 +175,7 @@ export default class MyPlugin extends Plugin {
         const data: ParsedSettingsData = await settingToData(this.app, this.settings, this.fieldsDict)
         const manager = new FileManager(this.app, data, this.app.vault.getMarkdownFiles(), this.fileHashes, this.addedMedia)
         debug((manager))
-        await manager.initialiseFiles()
+        await manager.detectFilesChanges()
         debug((manager))
         await manager.requests_1()
         this.addedMedia = Array.from(manager.added_media_set)

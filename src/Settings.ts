@@ -1,5 +1,6 @@
 import { PluginSettingTab, Setting, Notice, TFolder } from 'obsidian'
 import * as AnkiConnect from './anki'
+import ObsidianToMochiPlugin from "@src/main";
 
 const defaultDescs = {
 	"Tag": "The tag that the plugin automatically adds to any generated cards.",
@@ -16,7 +17,7 @@ const defaultDescs = {
 export class SettingsTab extends PluginSettingTab {
 
 	setup_custom_regexp(note_type: string, row_cells: HTMLCollection) {
-		const plugin = (this as any).plugin
+		const plugin = (this as any).plugin as ObsidianToMochiPlugin
 		let regexp_section = plugin.settings["CUSTOM_REGEXPS"]
 		let custom_regexp = new Setting(row_cells[1] as HTMLElement)
 			.addText(
@@ -34,17 +35,17 @@ export class SettingsTab extends PluginSettingTab {
 	}
 
 	setup_link_field(note_type: string, row_cells: HTMLCollection) {
-		const plugin = (this as any).plugin
+		const plugin = (this as any).plugin as ObsidianToMochiPlugin
 		let link_fields_section = plugin.settings.FILE_LINK_FIELDS
 		let link_field = new Setting(row_cells[2] as HTMLElement)
 			.addDropdown(
 				async dropdown => {
-					if (!(plugin.fields_dict[note_type])) {
-						plugin.fields_dict = await plugin.loadFieldsDict()
-						if (Object.keys(plugin.fields_dict).length != plugin.note_types.length) {
+					if (!(plugin.fieldsDict[note_type])) {
+						plugin.fieldsDict = await plugin.loadFieldsDict()
+						if (Object.keys(plugin.fieldsDict).length != plugin.noteTypes.length) {
 							new Notice('Need to connect to Anki to generate fields dictionary...')
 							try {
-								plugin.fields_dict = await plugin.generateFieldsDict()
+								plugin.fieldsDict = await plugin.generateFieldsDict()
 								new Notice("Fields dictionary successfully generated!")
 							}
 							catch(e) {
@@ -53,7 +54,7 @@ export class SettingsTab extends PluginSettingTab {
 							}
 						}
 					}
-					const field_names = plugin.fields_dict[note_type]
+					const field_names = plugin.fieldsDict[note_type]
 					for (let field of field_names) {
 						dropdown.addOption(field, field)
 					}
@@ -72,12 +73,12 @@ export class SettingsTab extends PluginSettingTab {
 	}
 
 	setup_context_field(note_type: string, row_cells: HTMLCollection) {
-		const plugin = (this as any).plugin
+		const plugin = (this as any).plugin as ObsidianToMochiPlugin
 		let context_fields_section: Record<string, string> = plugin.settings.CONTEXT_FIELDS
 		let context_field = new Setting(row_cells[3] as HTMLElement)
 			.addDropdown(
 				async dropdown => {
-					const field_names = plugin.fields_dict[note_type]
+					const field_names = plugin.fieldsDict[note_type]
 					for (let field of field_names) {
 						dropdown.addOption(field, field)
 					}
@@ -116,7 +117,7 @@ export class SettingsTab extends PluginSettingTab {
 
 	setup_note_table() {
 		let {containerEl} = this;
-		const plugin = (this as any).plugin
+		const plugin = (this as any).plugin as ObsidianToMochiPlugin
 		containerEl.createEl('h3', {text: 'Note type settings'})
 		this.create_collapsible("Note Type Table")
 		let note_type_table = containerEl.createEl('table', {cls: "anki-settings-table"})
@@ -131,7 +132,7 @@ export class SettingsTab extends PluginSettingTab {
 		if (!(plugin.settings.hasOwnProperty("CONTEXT_FIELDS"))) {
 			plugin.settings.CONTEXT_FIELDS = {}
 		}
-		for (let note_type of plugin.note_types) {
+		for (let note_type of plugin.noteTypes) {
 			let row = main_body.insertRow()
 
 			row.insertCell()
@@ -150,7 +151,7 @@ export class SettingsTab extends PluginSettingTab {
 
 	setup_syntax() {
 		let {containerEl} = this;
-		const plugin = (this as any).plugin
+		const plugin = (this as any).plugin as ObsidianToMochiPlugin
 		let syntax_settings = containerEl.createEl('h3', {text: 'Syntax Settings'})
 		for (let key of Object.keys(plugin.settings["Syntax"])) {
 			new Setting(syntax_settings)
@@ -167,7 +168,7 @@ export class SettingsTab extends PluginSettingTab {
 
 	setup_defaults() {
 		let {containerEl} = this;
-		const plugin = (this as any).plugin
+		const plugin = (this as any).plugin as ObsidianToMochiPlugin
 		let defaults_settings = containerEl.createEl('h3', {text: 'Defaults'})
 
 		// To account for new add context
@@ -226,11 +227,11 @@ export class SettingsTab extends PluginSettingTab {
 								plugin.settings["Defaults"][key] = value
 								await plugin.saveAllData()
 								if (plugin.hasOwnProperty("schedule_id")) {
-									window.clearInterval(plugin.schedule_id)
+									window.clearInterval(plugin.scheduleId)
 								}
 								if (value != 0) {
-									plugin.schedule_id = window.setInterval(async () => await plugin.scanVault(), value * 1000 * 60)
-									plugin.registerInterval(plugin.schedule_id)
+									plugin.scheduleId = window.setInterval(async () => await plugin.scanVault(), value * 1000 * 60)
+									plugin.registerInterval(plugin.scheduleId)
 								}
 
 							})
@@ -240,7 +241,7 @@ export class SettingsTab extends PluginSettingTab {
 		}
 	}
 
-	get_folders(): TFolder[] {
+	getFolders(): TFolder[] {
 		const app = (this as any).plugin.app
 		let folder_list: TFolder[] = [app.vault.getRoot()]
 		for (let folder of folder_list) {
@@ -250,7 +251,7 @@ export class SettingsTab extends PluginSettingTab {
 		return folder_list.slice(1) //Removes initial vault folder
 	}
 
-	setup_folder_deck(folder: TFolder, row_cells: HTMLCollection) {
+	setupFolderDeck(folder: TFolder, row_cells: HTMLCollection) {
 		const plugin = (this as any).plugin
 		let folder_decks = plugin.settings.FOLDER_DECKS
 		if (!(folder_decks.hasOwnProperty(folder.path))) {
@@ -269,7 +270,7 @@ export class SettingsTab extends PluginSettingTab {
 		folder_deck.controlEl.className += " anki-center"
 	}
 
-	setup_folder_tag(folder: TFolder, row_cells: HTMLCollection) {
+	setupFolderTag(folder: TFolder, row_cells: HTMLCollection) {
 		const plugin = (this as any).plugin
 		let folder_tags = plugin.settings.FOLDER_TAGS
 		if (!(folder_tags.hasOwnProperty(folder.path))) {
@@ -288,10 +289,10 @@ export class SettingsTab extends PluginSettingTab {
 		folder_tag.controlEl.className += " anki-center"
 	}
 
-	setup_folder_table() {
+	setupFolderTable() {
 		let {containerEl} = this;
 		const plugin = (this as any).plugin
-		const folder_list = this.get_folders()
+		const folder_list = this.getFolders()
 		containerEl.createEl('h3', {text: 'Folder settings'})
 		this.create_collapsible("Folder Table")
 		let folder_table = containerEl.createEl('table', {cls: "anki-settings-table"})
@@ -319,15 +320,15 @@ export class SettingsTab extends PluginSettingTab {
 			let row_cells = row.children
 
 			row_cells[0].innerHTML = folder.path
-			this.setup_folder_deck(folder, row_cells)
-			this.setup_folder_tag(folder, row_cells)
+			this.setupFolderDeck(folder, row_cells)
+			this.setupFolderTag(folder, row_cells)
 		}
 
 	}
 
-	setup_buttons() {
+	setupButtons() {
 		let {containerEl} = this
-		const plugin = (this as any).plugin
+		const plugin = (this as any).plugin as ObsidianToMochiPlugin
 		let action_buttons = containerEl.createEl('h3', {text: 'Actions'})
 		new Setting(action_buttons)
 			.setName("Regenerate Note Type Table")
@@ -338,13 +339,14 @@ export class SettingsTab extends PluginSettingTab {
 					.onClick(async () => {
 						new Notice("Need to connect to Anki to update note types...")
 						try {
-							plugin.note_types = await AnkiConnect.invoke('modelNames')
+							plugin.noteTypes = await AnkiConnect.invoke('modelNames')
+
 							plugin.regenerateSettingsRegexps()
-							plugin.fields_dict = await plugin.loadFieldsDict()
-							if (Object.keys(plugin.fields_dict).length != plugin.note_types.length) {
+							plugin.fieldsDict = await plugin.loadFieldsDict()
+							if (Object.keys(plugin.fieldsDict).length != plugin.noteTypes.length) {
 								new Notice('Need to connect to Anki to generate fields dictionary...')
 								try {
-									plugin.fields_dict = await plugin.generateFieldsDict()
+									plugin.fieldsDict = await plugin.generateFieldsDict()
 									new Notice("Fields dictionary successfully generated!")
 								}
 								catch(e) {
@@ -353,7 +355,7 @@ export class SettingsTab extends PluginSettingTab {
 								}
 							}
 							await plugin.saveAllData()
-							this.setup_display()
+							this.setupDisplay()
 							new Notice("Note types updated!")
 						} catch(e) {
 							new Notice("Couldn't connect to Anki! Check console for details.")
@@ -370,7 +372,7 @@ export class SettingsTab extends PluginSettingTab {
 				button => {
 					button.setButtonText("Clear").setClass("mod-cta")
 					.onClick(async () => {
-						plugin.added_media = []
+						plugin.addedMedia = []
 						await plugin.saveAllData()
 						new Notice("Media Cache cleared successfully!")
 					})
@@ -385,7 +387,7 @@ export class SettingsTab extends PluginSettingTab {
 				button => {
 					button.setButtonText("Clear").setClass("mod-cta")
 					.onClick(async () => {
-						plugin.file_hashes = {}
+						plugin.fileHashes = {}
 						await plugin.saveAllData()
 						new Notice("File Hash Cache cleared successfully!")
 					})
@@ -393,20 +395,20 @@ export class SettingsTab extends PluginSettingTab {
 			)
 	}
 
-	setup_display() {
+	setupDisplay() {
 		let {containerEl} = this
 
 		containerEl.empty()
 		containerEl.createEl('h2', {text: 'Obsidian_to_Anki settings'})
 		containerEl.createEl('a', {text: 'For more information check the wiki', href: "https://github.com/Pseudonium/Obsidian_to_Anki/wiki"})
 		this.setup_note_table()
-		this.setup_folder_table()
+		this.setupFolderTable()
 		this.setup_syntax()
 		this.setup_defaults()
-		this.setup_buttons()
+		this.setupButtons()
 	}
 
 	async display() {
-		this.setup_display()
+		this.setupDisplay()
 	}
 }
