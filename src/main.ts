@@ -8,7 +8,7 @@ import axios from "axios";
 import {settingToData} from "@src/SettingToData";
 import {FileManager} from "@src/FilesManager";
 import {ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
-import {MochiCardController} from "@src/controllers/MochiCardController";
+import {MochiSyncService} from "@src/services/MochiSyncService";
 
 axios.defaults.baseURL = 'https://app.mochi.cards/api';
 axios.defaults.headers.common['Accept'] = 'application/json'
@@ -179,10 +179,14 @@ export default class ObsidianToMochiPlugin extends Plugin {
         new Notice("Successfully connected to Anki! This could take a few minutes - please don't close Anki until the plugin is finished")
         const data: ParsedSettingsData = await settingToData(this.app, this.settings, this.fieldsDict)
         const manager = new FileManager(this.app, data, this.app.vault.getMarkdownFiles(), this.fileHashes, this.addedMedia)
-        debug({before_file_changes_detect_manager:manager})
+        debug({before_file_changes_detect_manager: manager})
         await manager.detectFilesChanges()
-        debug({after_file_changes_detect_manager:manager})
-        await manager.requests_1()
+        debug({after_file_changes_detect_manager: manager})
+
+        await MochiSyncService.syncFileManagerWithRemote(manager)
+        await MochiSyncService.syncChangesToCardsFiles(manager)
+
+        // await manager.requests_1()
         this.addedMedia = Array.from(manager.added_media_set)
         const hashes = manager.getHashes()
         for (let key in hashes) {

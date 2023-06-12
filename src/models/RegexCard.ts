@@ -7,7 +7,7 @@ import {CLOZE_ERROR, noteHasClozes, TAG_PREFIX, TAG_SEP} from "@src/models/BaseC
 export class RegexCard {
 
     match: RegExpMatchArray
-    note_type: string
+    cardType: string
     groups: Array<string>
     identifier: number | null
     tags: string[]
@@ -27,7 +27,7 @@ export class RegexCard {
         formatter: FormatConverter
     ) {
         this.match = match
-        this.note_type = note_type
+        this.cardType = note_type
         this.identifier = id ? parseInt(this.match.pop()) : null
         this.tags = tags ? this.match.pop().slice(TAG_PREFIX.length).split(TAG_SEP) : []
         this.field_names = fields_dict[note_type]
@@ -47,7 +47,7 @@ export class RegexCard {
         for (let key in fields) {
             fields[key] = this.formatter.format(
                 fields[key].trim(),
-                this.note_type.includes("Cloze") && this.curly_cloze,
+                this.cardType.includes("Cloze") && this.curly_cloze,
                 this.highlights_to_cloze
             ).trim()
         }
@@ -56,20 +56,20 @@ export class RegexCard {
 
     parse(deck: string, url: string = "", frozen_fields_dict: FROZEN_FIELDS_DICT, data: CardsFileSettingsData, context: string): AnkiConnectNoteAndID {
         let template = JSON.parse(JSON.stringify(data.template))
-        template["modelName"] = this.note_type
+        template["modelName"] = this.cardType
         template["fields"] = this.getFields()
         const file_link_fields = data.file_link_fields
         if (url) {
-            this.formatter.format_note_with_url(template, url, file_link_fields[this.note_type])
+            this.formatter.format_note_with_url(template, url, file_link_fields[this.cardType])
         }
         if (Object.keys(frozen_fields_dict).length) {
             this.formatter.format_note_with_frozen_fields(template, frozen_fields_dict)
         }
         if (context) {
-            const context_field = data.context_fields[this.note_type]
+            const context_field = data.context_fields[this.cardType]
             template["fields"][context_field] += context
         }
-        if (this.note_type.includes("Cloze") && !(noteHasClozes(template))) {
+        if (this.cardType.includes("Cloze") && !(noteHasClozes(template))) {
             this.identifier = CLOZE_ERROR //An error code that says "don't add this note!"
         }
         template["tags"].push(...this.tags)

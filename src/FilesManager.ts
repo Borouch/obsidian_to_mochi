@@ -241,15 +241,15 @@ export class FileManager {
                 console.error("Error: ", error)
                 file_response = note_ids_array_by_file[i].result
             }
-            file.ankiCardIds = []
+            file.mochiCardIds = []
             for (let index in file_response) {
                 let i = parseInt(index)
                 let response = file_response[i]
                 try {
-                    file.ankiCardIds.push(AnkiConnect.parse(response))
+                    file.mochiCardIds.push(AnkiConnect.parse(response))
                 } catch (error) {
                     console.warn("Failed to add note ", file.allTypeAnkiCardsToAdd[i], " in file", file.path, " due to error ", error)
-                    file.ankiCardIds.push(response.result)
+                    file.mochiCardIds.push(response.result)
                 }
             }
         }

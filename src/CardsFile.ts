@@ -90,7 +90,7 @@ abstract class AbstractCardsFile {
     idIndexes: number[]
     allTypeAnkiCardsToAdd: AnkiConnectNote[]
 
-    ankiCardIds: Array<number | null>
+    mochiCardIds: Array<number | null> = []
     cardIds: number[]
     ankiTags: string[]
 
@@ -250,9 +250,9 @@ export class CardsFile extends AbstractCardsFile {
     ignore_spans: [number, number][]
     custom_note_type_regexps: Record<string, string>
     inlineCardsToAdd: AnkiConnectNote[]
-    inline_id_indexes: number[]
+    inlineIdIndexes: number[]
     regexCardsToAdd: AnkiConnectNote[]
-    regex_id_indexes: number[]
+    regexIdIndexes: number[]
 
     constructor(file_contents: string, path:string, url: string, data: CardsFileSettingsData, file_cache: CachedMetadata) {
         super(file_contents, path, url, data, file_cache)
@@ -287,8 +287,8 @@ export class CardsFile extends AbstractCardsFile {
         this.inlineCardsToAdd = []
         this.regexCardsToAdd = []
         this.idIndexes = []
-        this.inline_id_indexes = []
-        this.regex_id_indexes = []
+        this.inlineIdIndexes = []
+        this.regexIdIndexes = []
         this.mochiNotesToEdit = []
         this.mochiCardsToDelete = []
     }
@@ -358,7 +358,7 @@ export class CardsFile extends AbstractCardsFile {
                 // Need to make sure global_tags get added
                 parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
                 this.inlineCardsToAdd.push(parsed.ankiNote)
-                this.inline_id_indexes.push(position)
+                this.inlineIdIndexes.push(position)
             } else if (!this.data.EXISTING_IDS.includes(parsed.identifier)) {
                 // Need to show an error
                 if (parsed.identifier == CLOZE_ERROR) {
@@ -412,7 +412,7 @@ export class CardsFile extends AbstractCardsFile {
                         }
                         parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
                         this.regexCardsToAdd.push(parsed.ankiNote)
-                        this.regex_id_indexes.push(match.index + match[0].length)
+                        this.regexIdIndexes.push(match.index + match[0].length)
                     }
                 }
             }
@@ -444,25 +444,25 @@ export class CardsFile extends AbstractCardsFile {
         let normal_inserts: [number, string][] = []
         this.idIndexes.forEach(
             (id_position: number, index: number) => {
-                const identifier: number | null = this.ankiCardIds[index]
+                const identifier: number | null = this.mochiCardIds[index]
                 if (identifier) {
                     normal_inserts.push([id_position, id_to_str(identifier, false, this.data.comment)])
                 }
             }
         )
         let inline_inserts: [number, string][] = []
-        this.inline_id_indexes.forEach(
+        this.inlineIdIndexes.forEach(
             (id_position: number, index: number) => {
-                const identifier: number | null = this.ankiCardIds[index + this.mochiCardsToAdd.length] //Since regular then inline
+                const identifier: number | null = this.mochiCardIds[index + this.mochiCardsToAdd.length] //Since regular then inline
                 if (identifier) {
                     inline_inserts.push([id_position, id_to_str(identifier, true, this.data.comment)])
                 }
             }
         )
         let regex_inserts: [number, string][] = []
-        this.regex_id_indexes.forEach(
+        this.regexIdIndexes.forEach(
             (id_position: number, index: number) => {
-                const identifier: number | null = this.ankiCardIds[index + this.mochiCardsToAdd.length + this.inlineCardsToAdd.length] // Since regular then inline then regex
+                const identifier: number | null = this.mochiCardIds[index + this.mochiCardsToAdd.length + this.inlineCardsToAdd.length] // Since regular then inline then regex
                 if (identifier) {
                     regex_inserts.push([id_position, "\n" + id_to_str(identifier, false, this.data.comment)])
                 }
