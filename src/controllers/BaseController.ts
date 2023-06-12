@@ -10,31 +10,26 @@ export abstract class BaseController<TModel,
     public abstract ENTITY: string;
     public abstract ENTITIES: string;
 
-    private parseResponse(key:string|undefined,response: AxiosResponse<any, any>){
-        if(!key) return response.data
-        return response.data[key] ?? null;
-    }
-
-    public async index(config: AxiosRequestConfig<any> = {}) {
+    public async index(config: AxiosRequestConfig<any> = {}): Promise<TModel[] | null> {
         const response = await Controller.index(this.RESOURCE, config);
         if (!response) return null
-        const dtos: TIndexDTO[] | null = this.parseResponse(this.ENTITIES,response)
+        const dtos: TIndexDTO[] | null = this.parseResponse(this.ENTITIES, response)
         if (!dtos) return null;
         return dtos.map((dto) => this.mapperFactory().mapFromDTO(dto));
     }
 
-    public async show(id: number, config: AxiosRequestConfig<any> = {}) {
+    public async show(id: number, config: AxiosRequestConfig<any> = {}): Promise<TModel | null> {
         const response = await Controller.show(`${this.RESOURCE}/${id}`, config);
         if (!response) return null
-        const dto: TIndexDTO | null = this.parseResponse(this.ENTITY,response)
+        const dto: TIndexDTO | null = this.parseResponse(this.ENTITY, response)
         if (!dto) return null;
         return this.mapperFactory().mapFromDTO(dto)
     }
 
-    public async store(dto: TStoreDTO, config: AxiosRequestConfig<any> = {}) {
+    public async store(dto: TStoreDTO, config: AxiosRequestConfig<any> = {}): Promise<TModel | null> {
         const response = await Controller.store(this.RESOURCE, dto, config);
         if (!response) return null
-        const storedDto: TIndexDTO | null = this.parseResponse(this.ENTITY,response)
+        const storedDto: TIndexDTO | null = this.parseResponse(this.ENTITY, response)
         if (!storedDto) return null;
         return this.mapperFactory().mapFromDTO(storedDto);
     }
@@ -48,11 +43,16 @@ export abstract class BaseController<TModel,
     public async update(id: number, dto: TStoreDTO, config: AxiosRequestConfig<any> = {}) {
         const response = await Controller.update(`${this.RESOURCE}/${id}`, dto, config);
         if (!response) return null
-        const updatedDto: TIndexDTO | null = this.parseResponse(this.ENTITY,response)
+        const updatedDto: TIndexDTO | null = this.parseResponse(this.ENTITY, response)
         if (!updatedDto) return null;
         return this.mapperFactory().mapFromDTO(updatedDto);
     }
 
     protected abstract mapperFactory(): TMapper;
+
+    private parseResponse(key: string | undefined, response: AxiosResponse<any, any>) {
+        if (!key) return response.data
+        return response.data[key] ?? null;
+    }
 
 }

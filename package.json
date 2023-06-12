@@ -4,7 +4,7 @@
   "description": "This is a sample plugin for Obsidian (https://obsidian.md)",
   "main": "main.js",
   "scripts": {
-    "dev": "node esbuild.config.mjs --watch",
+    "dev": "node esbuild.config.mjs development",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "prettier": "prettier --write 'src/**/*.+(ts|tsx|json|html|css)'",
     "eslint": "eslint . --ext .ts,.tsx --fix"

@@ -16,9 +16,9 @@ export interface MochiCardDTO {
         };
     };
     attachments?: MochiAttachmentDTO[];
-    id: string;
+    id?: string;
     reviews?: any[];
-    "created-at": {
+    "created-at"?: {
         date: string;
     };
 }

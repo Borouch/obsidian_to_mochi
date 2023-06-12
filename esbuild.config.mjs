@@ -1,16 +1,14 @@
 import process from 'process';
-import esbuild from 'esbuild';
+import * as esbuild from 'esbuild';
 import builtins from 'builtin-modules';
 
 const banner = ``;
-
 const prod = process.argv[2] === 'production';
 const dev = process.argv[2] === 'development';
 
-esbuild
-  .build({
+let buildOptions = {
     banner: {
-      js: banner,
+        js: banner,
     },
     bundle: true,
     entryPoints: ['./src/main.ts'],
@@ -20,10 +18,16 @@ esbuild
     logLevel: 'info',
     minify: prod ? true : false,
     outfile: 'main.js',
-    plugins: [
-    ],
+    plugins: [ ],
     sourcemap: 'inline',
     target: 'es2016',
     treeShaking: true,
-  })
-  .catch(() => process.exit(1));
+};
+
+if (dev) {
+    let ctx = await esbuild.context(buildOptions);
+    await ctx.watch();
+    console.log('watching...');
+} else {
+    esbuild.build(buildOptions).catch(() => process.exit(1));
+}

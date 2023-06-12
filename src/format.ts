@@ -2,7 +2,7 @@ import { AnkiConnectNote } from './interfaces/note-interface'
 import { basename, extname } from 'path'
 import { Converter } from 'showdown'
 import { CachedMetadata } from 'obsidian'
-import * as c from './constants'
+ import * as c from './Constants'
 
 import showdownHighlight from 'showdown-highlight'
 

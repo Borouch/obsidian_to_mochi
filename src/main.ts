@@ -1,15 +1,19 @@
 import {addIcon, Notice, Plugin} from 'obsidian'
 import * as AnkiConnect from './anki'
 import {SettingsTab} from './settings'
-import {ANKI_ICON} from './constants'
+import {ANKI_ICON} from './Constants'
 import {debug} from "@src/utils/logger";
 
 import axios from "axios";
 import {settingToData} from "@src/SettingToData";
 import {FileManager} from "@src/FilesManager";
 import {ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
-axios.defaults.baseURL = 'http://app.mochi.cards/api';
-axios.defaults.headers.common['Accept']='application/json'
+import {MochiCardController} from "@src/controllers/MochiCardController";
+
+axios.defaults.baseURL = 'https://app.mochi.cards/api';
+axios.defaults.headers.common['Accept'] = 'application/json'
+axios.defaults.headers.common['Authorization'] = 'Basic MjI0ZmRmYzkyYTg3NGExMDY5ZjUzZmFmOg=='
+
 export default class ObsidianToMochiPlugin extends Plugin {
 
     settings: PluginSettings
@@ -17,7 +21,8 @@ export default class ObsidianToMochiPlugin extends Plugin {
     fieldsDict: Record<string, string[]>
     addedMedia: string[]
     fileHashes: Record<string, string>
-    scheduleId:any
+    scheduleId: any
+
     async getDefaultSettings(): Promise<PluginSettings> {
         let settings: PluginSettings = {
             CUSTOM_REGEXPS: {},
@@ -174,9 +179,9 @@ export default class ObsidianToMochiPlugin extends Plugin {
         new Notice("Successfully connected to Anki! This could take a few minutes - please don't close Anki until the plugin is finished")
         const data: ParsedSettingsData = await settingToData(this.app, this.settings, this.fieldsDict)
         const manager = new FileManager(this.app, data, this.app.vault.getMarkdownFiles(), this.fileHashes, this.addedMedia)
-        debug((manager))
+        debug({before_file_changes_detect_manager:manager})
         await manager.detectFilesChanges()
-        debug((manager))
+        debug({after_file_changes_detect_manager:manager})
         await manager.requests_1()
         this.addedMedia = Array.from(manager.added_media_set)
         const hashes = manager.getHashes()

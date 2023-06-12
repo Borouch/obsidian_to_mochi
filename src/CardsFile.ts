@@ -5,7 +5,7 @@ import { AnkiConnectNote, AnkiConnectNoteAndID } from './interfaces/IAnkiConnect
 import { BaseCard, CLOZE_ERROR, NOTE_TYPE_ERROR, TAG_SEP, ID_REGEXP_STR, TAG_REGEXP_STR } from './models/BaseCard'
 import { Md5 } from 'ts-md5/dist/md5';
 import * as AnkiConnect from './anki'
-import * as c from './constants'
+ import * as c from './Constants'
 import { FormatConverter } from './format'
 import { CachedMetadata, HeadingCache } from 'obsidian'
 import {CardsFileSettingsData} from "@src/interfaces/ISettings";
@@ -79,14 +79,15 @@ abstract class AbstractCardsFile {
     data: CardsFileSettingsData
     tFileCache: CachedMetadata
 
-    frozen_fields_dict: FROZEN_FIELDS_DICT
-    target_deck: string
-    global_tags: string
+    frozenFieldDict: FROZEN_FIELDS_DICT
+    targetDeckName: string
+    globalTags: string
 
-    ankiCardsToAdd: AnkiConnectNote[]
+    mochiCardsToAdd: AnkiConnectNote[]
+    mochiNotesToEdit: AnkiConnectNoteAndID[]
+    mochiCardsToDelete: number[]
+
     idIndexes: number[]
-    ankiNotesToEdit: AnkiConnectNoteAndID[]
-    ankiCardsToDelte: number[]
     allTypeAnkiCardsToAdd: AnkiConnectNote[]
 
     ankiCardIds: Array<number | null>
@@ -127,17 +128,17 @@ abstract class AbstractCardsFile {
             ).getFields()
             frozen_fields_dict[note_type] = parsed_fields
         }
-        this.frozen_fields_dict = frozen_fields_dict
+        this.frozenFieldDict = frozen_fields_dict
     }
 
     setup_target_deck() {
         const result = this.contents.match(this.data.DECK_REGEXP)
-        this.target_deck = result ? result[1] : this.data.template["deckName"]
+        this.targetDeckName = result ? result[1] : this.data.template["deckName"]
     }
 
     setup_global_tags() {
         const result = this.contents.match(this.data.TAG_REGEXP)
-        this.global_tags = result ? result[1] : ""
+        this.globalTags = result ? result[1] : ""
     }
 
     getHash(): string {
@@ -148,7 +149,7 @@ abstract class AbstractCardsFile {
 
     scanCardDeletions() {
         for (let match of this.contents.matchAll(this.data.EMPTY_REGEXP)) {
-            this.ankiCardsToDelte.push(parseInt(match[1]))
+            this.mochiCardsToDelete.push(parseInt(match[1]))
         }
     }
 
@@ -198,12 +199,12 @@ abstract class AbstractCardsFile {
     }
 
     getDeleteNotes(): AnkiConnect.AnkiConnectRequest {
-        return AnkiConnect.deleteNotes(this.ankiCardsToDelte)
+        return AnkiConnect.deleteNotes(this.mochiCardsToDelete)
     }
 
     getUpdateFields(): AnkiConnect.AnkiConnectRequest {
         let actions: AnkiConnect.AnkiConnectRequest[] = []
-        for (let parsed of this.ankiNotesToEdit) {
+        for (let parsed of this.mochiNotesToEdit) {
             actions.push(
                 AnkiConnect.updateNoteFields(
                     parsed.identifier, parsed.ankiNote.fields
@@ -215,19 +216,19 @@ abstract class AbstractCardsFile {
 
     getNoteInfo(): AnkiConnect.AnkiConnectRequest {
         let IDs: number[] = []
-        for (let parsed of this.ankiNotesToEdit) {
+        for (let parsed of this.mochiNotesToEdit) {
             IDs.push(parsed.identifier)
         }
         return AnkiConnect.notesInfo(IDs)
     }
 
     getChangeDecks(): AnkiConnect.AnkiConnectRequest {
-        return AnkiConnect.changeDeck(this.cardIds, this.target_deck)
+        return AnkiConnect.changeDeck(this.cardIds, this.targetDeckName)
     }
 
     getClearTags(): AnkiConnect.AnkiConnectRequest {
         let IDs: number[] = []
-        for (let parsed of this.ankiNotesToEdit) {
+        for (let parsed of this.mochiNotesToEdit) {
             IDs.push(parsed.identifier)
         }
         return AnkiConnect.removeTags(IDs, this.ankiTags.join(" "))
@@ -235,9 +236,9 @@ abstract class AbstractCardsFile {
 
     getAddTags(): AnkiConnect.AnkiConnectRequest {
         let actions: AnkiConnect.AnkiConnectRequest[] = []
-        for (let parsed of this.ankiNotesToEdit) {
+        for (let parsed of this.mochiNotesToEdit) {
             actions.push(
-                AnkiConnect.addTags([parsed.identifier], parsed.ankiNote.tags.join(" ") + " " + this.global_tags)
+                AnkiConnect.addTags([parsed.identifier], parsed.ankiNote.tags.join(" ") + " " + this.globalTags)
             )
         }
         return AnkiConnect.multi(actions)
@@ -282,14 +283,14 @@ export class CardsFile extends AbstractCardsFile {
         this.setup_target_deck()
         this.setup_global_tags()
         this.add_spans_to_ignore()
-        this.ankiCardsToAdd = []
+        this.mochiCardsToAdd = []
         this.inlineCardsToAdd = []
         this.regexCardsToAdd = []
         this.idIndexes = []
         this.inline_id_indexes = []
         this.regex_id_indexes = []
-        this.ankiNotesToEdit = []
-        this.ankiCardsToDelte = []
+        this.mochiNotesToEdit = []
+        this.mochiCardsToDelete = []
     }
 
     /*
@@ -307,9 +308,9 @@ export class CardsFile extends AbstractCardsFile {
                 this.data.highlights_to_cloze,
                 this.formatter
             ).parse(
-                this.target_deck,
+                this.targetDeckName,
                 this.url,
-                this.frozen_fields_dict,
+                this.frozenFieldDict,
                 this.data,
                 this.data.add_context ? this.getContextAtIndex(card_match.index) : ""
             )
@@ -317,8 +318,8 @@ export class CardsFile extends AbstractCardsFile {
 
             if (haveIdWrittenToCard) {
                 // Need to make sure global_tags get added
-                parsed.ankiNote.tags.push(...this.global_tags.split(TAG_SEP))
-                this.ankiCardsToAdd.push(parsed.ankiNote)
+                parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
+                this.mochiCardsToAdd.push(parsed.ankiNote)
                 this.idIndexes.push(position)
             } else if (!this.data.EXISTING_IDS.includes(parsed.identifier)) {
                 if (parsed.identifier == CLOZE_ERROR) {
@@ -331,7 +332,7 @@ export class CardsFile extends AbstractCardsFile {
                     console.warn("Note with id", parsed.identifier, " in file ", this.path, " does not exist in Anki!")
                 }
             } else {
-                this.ankiNotesToEdit.push(parsed)
+                this.mochiNotesToEdit.push(parsed)
             }
         }
     }
@@ -347,15 +348,15 @@ export class CardsFile extends AbstractCardsFile {
                 this.data.highlights_to_cloze,
                 this.formatter
             ).parse(
-                this.target_deck,
+                this.targetDeckName,
                 this.url,
-                this.frozen_fields_dict,
+                this.frozenFieldDict,
                 this.data,
                 this.data.add_context ? this.getContextAtIndex(note_match.index) : ""
             )
             if (parsed.identifier == null) {
                 // Need to make sure global_tags get added
-                parsed.ankiNote.tags.push(...this.global_tags.split(TAG_SEP))
+                parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
                 this.inlineCardsToAdd.push(parsed.ankiNote)
                 this.inline_id_indexes.push(position)
             } else if (!this.data.EXISTING_IDS.includes(parsed.identifier)) {
@@ -365,7 +366,7 @@ export class CardsFile extends AbstractCardsFile {
                 }
                 console.warn("Note with id", parsed.identifier, " in file ", this.path, " does not exist in Anki!")
             } else {
-                this.ankiNotesToEdit.push(parsed)
+                this.mochiNotesToEdit.push(parsed)
             }
         }
     }
@@ -374,7 +375,7 @@ export class CardsFile extends AbstractCardsFile {
         //Search the file for regex matches
         //ignoring matches inside ignore_spans,
         //and adding any matches to ignore_spans.
-        debugger
+
         for (let search_id of [true, false]) {
             for (let search_tags of [true, false]) {
                 let id_str = search_id ? ID_REGEXP_STR : ""
@@ -386,9 +387,9 @@ export class CardsFile extends AbstractCardsFile {
                         match, note_type, this.data.fields_dict,
                         search_tags, search_id, this.data.curly_cloze, this.data.highlights_to_cloze, this.formatter
                     ).parse(
-                        this.target_deck,
+                        this.targetDeckName,
                         this.url,
-                        this.frozen_fields_dict,
+                        this.frozenFieldDict,
                         this.data,
                         this.data.add_context ? this.getContextAtIndex(match.index) : ""
                     )
@@ -401,7 +402,7 @@ export class CardsFile extends AbstractCardsFile {
                             }
                             console.warn("Note with id", parsed.identifier, " in file ", this.path, " does not exist in Anki!")
                         } else {
-                            this.ankiNotesToEdit.push(parsed)
+                            this.mochiNotesToEdit.push(parsed)
                         }
                     } else {
                         if (parsed.identifier == CLOZE_ERROR) {
@@ -409,7 +410,7 @@ export class CardsFile extends AbstractCardsFile {
                             this.ignore_spans.pop()
                             continue
                         }
-                        parsed.ankiNote.tags.push(...this.global_tags.split(TAG_SEP))
+                        parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
                         this.regexCardsToAdd.push(parsed.ankiNote)
                         this.regex_id_indexes.push(match.index + match[0].length)
                     }
@@ -431,7 +432,7 @@ export class CardsFile extends AbstractCardsFile {
                 this.searchContentRegexpMatch(note_type, regexp_str)
             }
         }
-        this.allTypeAnkiCardsToAdd = this.ankiCardsToAdd.concat(this.inlineCardsToAdd).concat(this.regexCardsToAdd)
+        this.allTypeAnkiCardsToAdd = this.mochiCardsToAdd.concat(this.inlineCardsToAdd).concat(this.regexCardsToAdd)
         this.scanCardDeletions()
     }
 
@@ -452,7 +453,7 @@ export class CardsFile extends AbstractCardsFile {
         let inline_inserts: [number, string][] = []
         this.inline_id_indexes.forEach(
             (id_position: number, index: number) => {
-                const identifier: number | null = this.ankiCardIds[index + this.ankiCardsToAdd.length] //Since regular then inline
+                const identifier: number | null = this.ankiCardIds[index + this.mochiCardsToAdd.length] //Since regular then inline
                 if (identifier) {
                     inline_inserts.push([id_position, id_to_str(identifier, true, this.data.comment)])
                 }
@@ -461,7 +462,7 @@ export class CardsFile extends AbstractCardsFile {
         let regex_inserts: [number, string][] = []
         this.regex_id_indexes.forEach(
             (id_position: number, index: number) => {
-                const identifier: number | null = this.ankiCardIds[index + this.ankiCardsToAdd.length + this.inlineCardsToAdd.length] // Since regular then inline then regex
+                const identifier: number | null = this.ankiCardIds[index + this.mochiCardsToAdd.length + this.inlineCardsToAdd.length] // Since regular then inline then regex
                 if (identifier) {
                     regex_inserts.push([id_position, "\n" + id_to_str(identifier, false, this.data.comment)])
                 }
