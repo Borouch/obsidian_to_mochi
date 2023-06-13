@@ -37,7 +37,7 @@ export interface CardsFileSettingsData {
 	file_link_fields: Record<string, string>
 	context_fields: Record<string, string>
 	template: AnkiConnectNote
-	EXISTING_IDS: number[]
+	MOCHI_CARD_IDS: number[]
 	vault_name: string
 
 	FROZEN_REGEXP: RegExp

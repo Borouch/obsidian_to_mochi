@@ -54,7 +54,7 @@ export class RegexCard {
         return fields
     }
 
-    parse(deck: string, url: string = "", frozen_fields_dict: FROZEN_FIELDS_DICT, data: CardsFileSettingsData, context: string): AnkiConnectNoteAndID {
+    parseToAnkiConnectNote(deck: string, url: string = "", frozen_fields_dict: FROZEN_FIELDS_DICT, data: CardsFileSettingsData, context: string): AnkiConnectNoteAndID {
         let template = JSON.parse(JSON.stringify(data.template))
         template["modelName"] = this.cardType
         template["fields"] = this.getFields()

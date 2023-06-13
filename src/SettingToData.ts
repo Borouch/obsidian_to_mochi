@@ -1,8 +1,8 @@
-import { PluginSettings, ParsedSettingsData } from './interfaces/settings-interface'
 import { App } from 'obsidian'
 import * as AnkiConnect from './anki'
 import { ID_REGEXP_STR } from './models/BaseCard'
 import { escapeRegex } from './Constants'
+import {ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
 
 export async function settingToData(app: App, settings: PluginSettings, fields_dict: Record<string, string[]>): Promise<ParsedSettingsData> {
     let result: ParsedSettingsData = <ParsedSettingsData>{}
@@ -25,7 +25,7 @@ export async function settingToData(app: App, settings: PluginSettings, fields_d
         },
         tags: [settings.Defaults.Tag]
     }
-    result.EXISTING_IDS = await AnkiConnect.invoke('findNotes', {query: ""}) as number[]
+    result.MOCHI_CARD_IDS = await AnkiConnect.invoke('findNotes', {query: ""}) as number[]
 
     //RegExp section
     result.FROZEN_REGEXP = new RegExp(escapeRegex(settings.Syntax["Frozen Fields Line"]) + String.raw` - (.*?):\n((?:[^\n][\n]?)+)`, "g")

@@ -1,20 +1,21 @@
 /*Performing plugin operations on markdown file contents*/
 
-import { FROZEN_FIELDS_DICT } from './interfaces/IField'
-import { AnkiConnectNote, AnkiConnectNoteAndID } from './interfaces/IAnkiConnectNote'
-import { BaseCard, CLOZE_ERROR, NOTE_TYPE_ERROR, TAG_SEP, ID_REGEXP_STR, TAG_REGEXP_STR } from './models/BaseCard'
-import { Md5 } from 'ts-md5/dist/md5';
+import {FROZEN_FIELDS_DICT} from './interfaces/IField'
+import {AnkiConnectNote, AnkiConnectNoteAndID} from './interfaces/IAnkiConnectNote'
+import {BaseCard, CLOZE_ERROR, ID_REGEXP_STR, NOTE_TYPE_ERROR, TAG_REGEXP_STR, TAG_SEP} from './models/BaseCard'
+import {Md5} from 'ts-md5/dist/md5';
 import * as AnkiConnect from './anki'
- import * as c from './Constants'
-import { FormatConverter } from './format'
-import { CachedMetadata, HeadingCache } from 'obsidian'
+import * as c from './Constants'
+import {FormatConverter} from './format'
+import {CachedMetadata, HeadingCache} from 'obsidian'
 import {CardsFileSettingsData} from "@src/interfaces/ISettings";
 import {RegexCard} from "@src/models/RegexCard";
 import {InlineCard} from "@src/modeI/InlineCard.ts";
+import {debug} from "@src/utils/Logger";
 
 const double_regexp: RegExp = /(?:\r\n|\r|\n)((?:\r\n|\r|\n)(?:<!--)?ID: \d+)/g
 
-function id_to_str(identifier:number, inline:boolean = false, comment:boolean = false): string {
+function id_to_str(identifier: number, inline: boolean = false, comment: boolean = false): string {
     let result = "ID: " + identifier.toString()
     if (comment) {
         result = "<!--" + result + "-->"
@@ -28,47 +29,49 @@ function id_to_str(identifier:number, inline:boolean = false, comment:boolean = 
 }
 
 function string_insert(text: string, position_inserts: Array<[number, string]>): string {
-	/*Insert strings in position_inserts into text, at indices.
+    /*Insert strings in position_inserts into text, at indices.
 
     position_inserts will look like:
     [(0, "hi"), (3, "hello"), (5, "beep")]*/
-	let offset = 0
-	let sorted_inserts: Array<[number, string]> = position_inserts.sort((a, b):number => a[0] - b[0])
-	for (let insertion of sorted_inserts) {
-		let position = insertion[0]
-		let insert_str = insertion[1]
-		text = text.slice(0, position + offset) + insert_str + text.slice(position + offset)
-		offset += insert_str.length
-	}
-	return text
+    let offset = 0
+    let sorted_inserts: Array<[number, string]> = position_inserts.sort((a, b): number => a[0] - b[0])
+    for (let insertion of sorted_inserts) {
+        let position = insertion[0]
+        let insert_str = insertion[1]
+        text = text.slice(0, position + offset) + insert_str + text.slice(position + offset)
+        offset += insert_str.length
+    }
+    return text
 }
 
 function spans(pattern: RegExp, text: string): Array<[number, number]> {
-	/*Return a list of span-tuples for matches of pattern in text.*/
-	let output: Array<[number, number]> = []
-	let matches = text.matchAll(pattern)
-	for (let match of matches) {
-		output.push(
-			[match.index, match.index + match[0].length]
-		)
-	}
-	return output
+    /*Return a list of span-tuples for matches of pattern in text.*/
+    let output: Array<[number, number]> = []
+    let matches = text.matchAll(pattern)
+    for (let match of matches) {
+        output.push(
+            [match.index, match.index + match[0].length]
+        )
+    }
+    return output
 }
 
 function contained_in(span: [number, number], spans: Array<[number, number]>): boolean {
-	/*Return whether span is contained in spans (+- 1 leeway)*/
-	return spans.some(
-		(element) => span[0] >= element[0] - 1 && span[1] <= element[1] + 1
-	)
+    /*Return whether span is contained in spans (+- 1 leeway)*/
+    return spans.some(
+        (element) => span[0] >= element[0] - 1 && span[1] <= element[1] + 1
+    )
 }
 
-function* findignore(pattern: RegExp, text: string, ignore_spans: Array<[number, number]>): IterableIterator<RegExpMatchArray> {
-	let matches = text.matchAll(pattern)
-	for (let match of matches) {
-		if (!(contained_in([match.index, match.index + match[0].length], ignore_spans))) {
-			yield match
-		}
-	}
+function* matchNotIgnored(pattern: RegExp, text: string, ignore_spans: Array<[number, number]>): IterableIterator<RegExpMatchArray> {
+    let matches = text.matchAll(pattern)
+    for (let match of matches) {
+        const matchSpan: [number, number] = [match.index, match.index + match[0].length]
+        debug({match: match, matchSpan, ignore_spans, pattern, text})
+        if (!(contained_in(matchSpan, ignore_spans))) {
+            yield match
+        }
+    }
 }
 
 abstract class AbstractCardsFile {
@@ -84,11 +87,11 @@ abstract class AbstractCardsFile {
     globalTags: string
 
     mochiCardsToAdd: AnkiConnectNote[]
-    mochiNotesToEdit: AnkiConnectNoteAndID[]
+    mochiCardsToEdit: AnkiConnectNoteAndID[]
     mochiCardsToDelete: number[]
 
     idIndexes: number[]
-    allTypeAnkiCardsToAdd: AnkiConnectNote[]
+    allTypeMochiCardsToAdd: AnkiConnectNote[]
 
     mochiCardIds: Array<number | null> = []
     cardIds: number[]
@@ -96,7 +99,7 @@ abstract class AbstractCardsFile {
 
     formatter: FormatConverter
 
-    constructor(file_contents: string, path:string, url: string, data: CardsFileSettingsData, file_cache: CachedMetadata) {
+    constructor(file_contents: string, path: string, url: string, data: CardsFileSettingsData, file_cache: CachedMetadata) {
         this.data = data
         this.contents = file_contents
         this.path = path
@@ -192,7 +195,7 @@ abstract class AbstractCardsFile {
 
     getAddNotes(): AnkiConnect.AnkiConnectRequest {
         let actions: AnkiConnect.AnkiConnectRequest[] = []
-        for (let note of this.allTypeAnkiCardsToAdd) {
+        for (let note of this.allTypeMochiCardsToAdd) {
             actions.push(AnkiConnect.addNote(note))
         }
         return AnkiConnect.multi(actions)
@@ -204,7 +207,7 @@ abstract class AbstractCardsFile {
 
     getUpdateFields(): AnkiConnect.AnkiConnectRequest {
         let actions: AnkiConnect.AnkiConnectRequest[] = []
-        for (let parsed of this.mochiNotesToEdit) {
+        for (let parsed of this.mochiCardsToEdit) {
             actions.push(
                 AnkiConnect.updateNoteFields(
                     parsed.identifier, parsed.ankiNote.fields
@@ -216,7 +219,7 @@ abstract class AbstractCardsFile {
 
     getNoteInfo(): AnkiConnect.AnkiConnectRequest {
         let IDs: number[] = []
-        for (let parsed of this.mochiNotesToEdit) {
+        for (let parsed of this.mochiCardsToEdit) {
             IDs.push(parsed.identifier)
         }
         return AnkiConnect.notesInfo(IDs)
@@ -228,7 +231,7 @@ abstract class AbstractCardsFile {
 
     getClearTags(): AnkiConnect.AnkiConnectRequest {
         let IDs: number[] = []
-        for (let parsed of this.mochiNotesToEdit) {
+        for (let parsed of this.mochiCardsToEdit) {
             IDs.push(parsed.identifier)
         }
         return AnkiConnect.removeTags(IDs, this.ankiTags.join(" "))
@@ -236,7 +239,7 @@ abstract class AbstractCardsFile {
 
     getAddTags(): AnkiConnect.AnkiConnectRequest {
         let actions: AnkiConnect.AnkiConnectRequest[] = []
-        for (let parsed of this.mochiNotesToEdit) {
+        for (let parsed of this.mochiCardsToEdit) {
             actions.push(
                 AnkiConnect.addTags([parsed.identifier], parsed.ankiNote.tags.join(" ") + " " + this.globalTags)
             )
@@ -254,7 +257,7 @@ export class CardsFile extends AbstractCardsFile {
     regexCardsToAdd: AnkiConnectNote[]
     regexIdIndexes: number[]
 
-    constructor(file_contents: string, path:string, url: string, data: CardsFileSettingsData, file_cache: CachedMetadata) {
+    constructor(file_contents: string, path: string, url: string, data: CardsFileSettingsData, file_cache: CachedMetadata) {
         super(file_contents, path, url, data, file_cache)
         this.custom_note_type_regexps = data.custom_regexps
     }
@@ -289,7 +292,7 @@ export class CardsFile extends AbstractCardsFile {
         this.idIndexes = []
         this.inlineIdIndexes = []
         this.regexIdIndexes = []
-        this.mochiNotesToEdit = []
+        this.mochiCardsToEdit = []
         this.mochiCardsToDelete = []
     }
 
@@ -301,27 +304,27 @@ export class CardsFile extends AbstractCardsFile {
         for (let card_match of this.contents.matchAll(this.data.CARD_REGEXP)) {
             // That second thing essentially gets the index of the end of the first capture group.
             let [cardContent, position]: [string, number] = [card_match[1], card_match.index + card_match[0].indexOf(card_match[1]) + card_match[1].length]
-            let parsed:AnkiConnectNoteAndID = new BaseCard(
+            let parsed: AnkiConnectNoteAndID = new BaseCard(
                 cardContent,
                 this.data.fields_dict,
                 this.data.curly_cloze,
                 this.data.highlights_to_cloze,
                 this.formatter
-            ).parse(
+            ).parseToAnkiConnectNote(
                 this.targetDeckName,
                 this.url,
                 this.frozenFieldDict,
                 this.data,
                 this.data.add_context ? this.getContextAtIndex(card_match.index) : ""
             )
-            const haveIdWrittenToCard = parsed.identifier == null
+            const doesNotHaveIdWrittenInCard = parsed.identifier == null
 
-            if (haveIdWrittenToCard) {
+            if (doesNotHaveIdWrittenInCard) {
                 // Need to make sure global_tags get added
                 parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
                 this.mochiCardsToAdd.push(parsed.ankiNote)
                 this.idIndexes.push(position)
-            } else if (!this.data.EXISTING_IDS.includes(parsed.identifier)) {
+            } else if (!this.data.MOCHI_CARD_IDS.includes(parsed.identifier)) {
                 if (parsed.identifier == CLOZE_ERROR) {
                     continue
                 }
@@ -332,7 +335,7 @@ export class CardsFile extends AbstractCardsFile {
                     console.warn("Note with id", parsed.identifier, " in file ", this.path, " does not exist in Anki!")
                 }
             } else {
-                this.mochiNotesToEdit.push(parsed)
+                this.mochiCardsToEdit.push(parsed)
             }
         }
     }
@@ -347,7 +350,7 @@ export class CardsFile extends AbstractCardsFile {
                 this.data.curly_cloze,
                 this.data.highlights_to_cloze,
                 this.formatter
-            ).parse(
+            ).parseToAnkiConnectNote(
                 this.targetDeckName,
                 this.url,
                 this.frozenFieldDict,
@@ -359,14 +362,14 @@ export class CardsFile extends AbstractCardsFile {
                 parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
                 this.inlineCardsToAdd.push(parsed.ankiNote)
                 this.inlineIdIndexes.push(position)
-            } else if (!this.data.EXISTING_IDS.includes(parsed.identifier)) {
+            } else if (!this.data.MOCHI_CARD_IDS.includes(parsed.identifier)) {
                 // Need to show an error
                 if (parsed.identifier == CLOZE_ERROR) {
                     continue
                 }
                 console.warn("Note with id", parsed.identifier, " in file ", this.path, " does not exist in Anki!")
             } else {
-                this.mochiNotesToEdit.push(parsed)
+                this.mochiCardsToEdit.push(parsed)
             }
         }
     }
@@ -377,24 +380,27 @@ export class CardsFile extends AbstractCardsFile {
         //and adding any matches to ignore_spans.
 
         for (let search_id of [true, false]) {
+            debug({search_id})
             for (let search_tags of [true, false]) {
                 let id_str = search_id ? ID_REGEXP_STR : ""
                 let tag_str = search_tags ? TAG_REGEXP_STR : ""
                 let regexp: RegExp = new RegExp(regexp_str + tag_str + id_str, 'gm')
-                for (let match of findignore(regexp, this.contents, this.ignore_spans)) {
+                for (let match of matchNotIgnored(regexp, this.contents, this.ignore_spans)) {
                     this.ignore_spans.push([match.index, match.index + match[0].length])
                     const parsed: AnkiConnectNoteAndID = new RegexCard(
                         match, note_type, this.data.fields_dict,
                         search_tags, search_id, this.data.curly_cloze, this.data.highlights_to_cloze, this.formatter
-                    ).parse(
+                    ).parseToAnkiConnectNote(
                         this.targetDeckName,
                         this.url,
                         this.frozenFieldDict,
                         this.data,
                         this.data.add_context ? this.getContextAtIndex(match.index) : ""
                     )
+                    debugger
+                    debug({search_id})
                     if (search_id) {
-                        if (!(this.data.EXISTING_IDS.includes(parsed.identifier))) {
+                        if (!(this.data.MOCHI_CARD_IDS.includes(parsed.identifier))) {
                             if (parsed.identifier == CLOZE_ERROR) {
                                 // This means it wasn't actually a note! So we should remove it from ignore_spans
                                 this.ignore_spans.pop()
@@ -402,7 +408,7 @@ export class CardsFile extends AbstractCardsFile {
                             }
                             console.warn("Note with id", parsed.identifier, " in file ", this.path, " does not exist in Anki!")
                         } else {
-                            this.mochiNotesToEdit.push(parsed)
+                            this.mochiCardsToEdit.push(parsed)
                         }
                     } else {
                         if (parsed.identifier == CLOZE_ERROR) {
@@ -432,7 +438,7 @@ export class CardsFile extends AbstractCardsFile {
                 this.searchContentRegexpMatch(note_type, regexp_str)
             }
         }
-        this.allTypeAnkiCardsToAdd = this.mochiCardsToAdd.concat(this.inlineCardsToAdd).concat(this.regexCardsToAdd)
+        this.allTypeMochiCardsToAdd = this.mochiCardsToAdd.concat(this.inlineCardsToAdd).concat(this.regexCardsToAdd)
         this.scanCardDeletions()
     }
 

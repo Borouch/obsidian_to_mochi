@@ -248,7 +248,7 @@ export class FileManager {
                 try {
                     file.mochiCardIds.push(AnkiConnect.parse(response))
                 } catch (error) {
-                    console.warn("Failed to add note ", file.allTypeAnkiCardsToAdd[i], " in file", file.path, " due to error ", error)
+                    console.warn("Failed to add note ", file.allTypeMochiCardsToAdd[i], " in file", file.path, " due to error ", error)
                     file.mochiCardIds.push(response.result)
                 }
             }

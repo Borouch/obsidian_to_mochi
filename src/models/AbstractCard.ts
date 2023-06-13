@@ -50,7 +50,7 @@ export abstract class AbstractCard {
 
     abstract getFields(): Record<string, string>
 
-    parse(deck: string, url: string, frozen_fields_dict: FROZEN_FIELDS_DICT, data: CardsFileSettingsData, context: string): AnkiConnectNoteAndID {
+    parseToAnkiConnectNote(deck: string, url: string, frozen_fields_dict: FROZEN_FIELDS_DICT, data: CardsFileSettingsData, context: string): AnkiConnectNoteAndID {
         let template = JSON.parse(JSON.stringify(data.template))
         template["modelName"] = this.cardType
         if (this.no_note_type) {
