@@ -8,6 +8,7 @@ import {ModelNotFoundError} from "@src/exceptions/ModelNotFoundError";
 import {MochiCard} from "@src/models/MochiCard";
 import {MochiCardDTO} from "@src/mappers/MochiCardMapper";
 import {debug} from "@src/utils/Logger";
+import {MochiCardService} from "@src/services/MochiCardService";
 
 export class MochiSyncService {
     public static mochiDecks: MochiDeck[] = []
@@ -18,8 +19,8 @@ export class MochiSyncService {
     public static async syncFileManagerWithRemote(manager: FileManager) {
         MochiSyncService.mochiDecks = await MochiSyncService.mochiDeckController.index() ?? []
         for (const cardFile of manager.cardsFiles) {
-            const storedCards: MochiCard[] = await MochiSyncService.storeCards(cardFile.allTypeMochiCardsToAdd)
-            const updatedCards: MochiCard[] = await MochiSyncService.updateCards(cardFile.mochiCardsToEdit)
+            const storedCards: MochiCard[] = await MochiCardService.storeCards(cardFile.allTypeMochiCardsToAdd)
+            const updatedCards: MochiCard[] = await MochiCardService.updateCards(cardFile.mochiCardsToEdit)
             const syncedCards = [...storedCards, ...updatedCards]
             cardFile.mochiCardIds.push(...syncedCards.map((c) => c.id as number))
             debug({storedCards, updatedCards, syncedCards})
@@ -41,62 +42,12 @@ export class MochiSyncService {
 
     }
 
-    private static async storeCards(cards: AnkiConnectNote[]): Promise<MochiCard[]> {
-        const mochiCards: MochiCard[] = []
-        for (const card of cards) {
-            const deck = await MochiSyncService.findOrCreateDeck(card.deckName)
-            const content = MochiSyncService.getGeneratedContentFromFields(card.fields)
 
-            const dto: MochiCardDTO = {"deck-id": deck.id, content: content}
-            const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto)
-            if (!mochiCard) {
-                throw new ModelNotFoundError('mochi card failed to be created');
-            }
-            mochiCards.push(mochiCard)
-        }
-        return mochiCards
-    }
-
-    private static async updateCards(cards: AnkiConnectNoteAndID[]) {
-        const mochiCards: MochiCard[] = []
-        for (const card of cards) {
-            const deck = await MochiSyncService.findOrCreateDeck(card.ankiNote.deckName)
-            const content = MochiSyncService.getGeneratedContentFromFields(card.ankiNote.fields)
-            const dto: MochiCardDTO = {"deck-id": deck.id, content: content}
-            const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.update(card.identifier, dto)
-            if (!mochiCard) {
-                throw new ModelNotFoundError('mochi card failed to be created');
-            }
-            mochiCards.push(mochiCard)
-        }
-        return mochiCards
-    }
-
-    public static async indexCards() {
-        const cards = await MochiSyncService.mochiCardController.index()
-        MochiSyncService.mochiCards = cards;
-        return cards
-    }
-
-    private static getGeneratedContentFromFields(fields: Record<string, string>) {
+    public static getGeneratedContentFromFields(fields: Record<string, string>) {
         return `${fields['Front']}\n---\n${fields['Back']}`
     }
 
-    private static async findOrCreateDeck(deckName: string): Promise<MochiDeck> {
-        const deck = MochiSyncService.findMatchingDeck(deckName)
-        if (deck) return deck
-        const newDeckDTO: MochiDeckStoreDTO = {name: deckName}
-        const newDeck: MochiDeck | null = await MochiSyncService.mochiDeckController.store(newDeckDTO)
-        if (!newDeck) {
-            throw new ModelNotFoundError('New deck failed to be created');
-        }
-        MochiSyncService.mochiDecks.push(newDeck)
-        return newDeck
-    }
 
-    private static findMatchingDeck(deckName: string): MochiDeck {
-        return MochiSyncService.mochiDecks.find((deck: MochiDeck) => deck.name === deckName) ?? null
-    }
 
 
 }
