@@ -9,6 +9,7 @@ import {settingToData} from "@src/SettingToData";
 import {FileManager} from "@src/FilesManager";
 import {ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
 import {MochiSyncService} from "@src/services/MochiSyncService";
+import {MochiCardService} from "@src/services/MochiCardService";
 
 axios.defaults.baseURL = 'https://app.mochi.cards/api';
 axios.defaults.headers.common['Accept'] = 'application/json'
@@ -167,16 +168,8 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
     async scanVault() {
         new Notice('Scanning vault, check console for details...');
-        console.info("Checking connection to Anki...")
 
-        try {
-            await AnkiConnect.invoke('modelNames')
-        } catch (e) {
-            new Notice("Error, couldn't connect to Anki! Check console for error message.")
-            return
-        }
-
-        new Notice("Successfully connected to Anki! This could take a few minutes - please don't close Anki until the plugin is finished")
+        MochiSyncService.mochiCards = await MochiCardService.indexCards()
         const data: ParsedSettingsData = await settingToData(this.app, this.settings, this.fieldsDict)
         const manager = new FileManager(this.app, data, this.app.vault.getMarkdownFiles(), this.fileHashes, this.addedMedia)
         debug({before_file_changes_detect_manager: manager})

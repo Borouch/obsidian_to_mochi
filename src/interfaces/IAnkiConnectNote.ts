@@ -11,6 +11,6 @@ export interface AnkiConnectNote {
 
 export interface AnkiConnectNoteAndID {
 	ankiNote: AnkiConnectNote,
-	identifier: number | null
+	identifier: string | null
 }
 

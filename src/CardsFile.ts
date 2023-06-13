@@ -67,7 +67,6 @@ function* matchNotIgnored(pattern: RegExp, text: string, ignore_spans: Array<[nu
     let matches = text.matchAll(pattern)
     for (let match of matches) {
         const matchSpan: [number, number] = [match.index, match.index + match[0].length]
-        debug({match: match, matchSpan, ignore_spans, pattern, text})
         if (!(contained_in(matchSpan, ignore_spans))) {
             yield match
         }
@@ -93,7 +92,7 @@ abstract class AbstractCardsFile {
     idIndexes: number[]
     allTypeMochiCardsToAdd: AnkiConnectNote[]
 
-    mochiCardIds: Array<number | null> = []
+    mochiCardIds: Array<string | null> = []
     cardIds: number[]
     ankiTags: string[]
 
@@ -398,11 +397,10 @@ export class CardsFile extends AbstractCardsFile {
                         this.data.add_context ? this.getContextAtIndex(match.index) : ""
                     )
                     debugger
-                    debug({search_id})
                     if (search_id) {
                         if (!(this.data.MOCHI_CARD_IDS.includes(parsed.identifier))) {
                             if (parsed.identifier == CLOZE_ERROR) {
-                                // This means it wasn't actually a note! So we should remove it from ignore_spans
+                                // This means it wasn't actually a card! So we should remove it from ignore_spans
                                 this.ignore_spans.pop()
                                 continue
                             }
@@ -412,7 +410,7 @@ export class CardsFile extends AbstractCardsFile {
                         }
                     } else {
                         if (parsed.identifier == CLOZE_ERROR) {
-                            // This means it wasn't actually a note! So we should remove it from ignore_spans
+                            // This means it wasn't actually a card! So we should remove it from ignore_spans
                             this.ignore_spans.pop()
                             continue
                         }
@@ -450,7 +448,7 @@ export class CardsFile extends AbstractCardsFile {
         let normal_inserts: [number, string][] = []
         this.idIndexes.forEach(
             (id_position: number, index: number) => {
-                const identifier: number | null = this.mochiCardIds[index]
+                const identifier: string | null = this.mochiCardIds[index]
                 if (identifier) {
                     normal_inserts.push([id_position, id_to_str(identifier, false, this.data.comment)])
                 }
@@ -459,7 +457,7 @@ export class CardsFile extends AbstractCardsFile {
         let inline_inserts: [number, string][] = []
         this.inlineIdIndexes.forEach(
             (id_position: number, index: number) => {
-                const identifier: number | null = this.mochiCardIds[index + this.mochiCardsToAdd.length] //Since regular then inline
+                const identifier: string | null = this.mochiCardIds[index + this.mochiCardsToAdd.length] //Since regular then inline
                 if (identifier) {
                     inline_inserts.push([id_position, id_to_str(identifier, true, this.data.comment)])
                 }
@@ -468,7 +466,7 @@ export class CardsFile extends AbstractCardsFile {
         let regex_inserts: [number, string][] = []
         this.regexIdIndexes.forEach(
             (id_position: number, index: number) => {
-                const identifier: number | null = this.mochiCardIds[index + this.mochiCardsToAdd.length + this.inlineCardsToAdd.length] // Since regular then inline then regex
+                const identifier: string | null = this.mochiCardIds[index + this.mochiCardsToAdd.length + this.inlineCardsToAdd.length] // Since regular then inline then regex
                 if (identifier) {
                     regex_inserts.push([id_position, "\n" + id_to_str(identifier, false, this.data.comment)])
                 }

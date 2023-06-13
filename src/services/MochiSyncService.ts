@@ -22,7 +22,7 @@ export class MochiSyncService {
             const storedCards: MochiCard[] = await MochiCardService.storeCards(cardFile.allTypeMochiCardsToAdd)
             const updatedCards: MochiCard[] = await MochiCardService.updateCards(cardFile.mochiCardsToEdit)
             const syncedCards = [...storedCards, ...updatedCards]
-            cardFile.mochiCardIds.push(...syncedCards.map((c) => c.id as number))
+            cardFile.mochiCardIds.push(...syncedCards.map((c) => c.id))
             debug({storedCards, updatedCards, syncedCards})
         }
     }

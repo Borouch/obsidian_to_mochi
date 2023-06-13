@@ -3,13 +3,14 @@ import {FIELDS_DICT, FROZEN_FIELDS_DICT} from "@src/interfaces/IField";
 import {CardsFileSettingsData} from "@src/interfaces/ISettings";
 import {AnkiConnectNoteAndID} from "@src/interfaces/IAnkiConnectNote";
 import {CLOZE_ERROR, noteHasClozes, TAG_PREFIX, TAG_SEP} from "@src/models/BaseCard";
+import {debug} from "@src/utils/Logger";
 
 export class RegexCard {
 
     match: RegExpMatchArray
     cardType: string
     groups: Array<string>
-    identifier: number | null
+    identifier: string | null
     tags: string[]
     field_names: string[]
     curly_cloze: boolean
@@ -26,9 +27,10 @@ export class RegexCard {
         highlights_to_cloze: boolean,
         formatter: FormatConverter
     ) {
+        debug({regex_card_match: match})
         this.match = match
         this.cardType = note_type
-        this.identifier = id ? parseInt(this.match.pop()) : null
+        this.identifier = id ? this.match.pop() : null
         this.tags = tags ? this.match.pop().slice(TAG_PREFIX.length).split(TAG_SEP) : []
         this.field_names = fields_dict[note_type]
         this.curly_cloze = curly_cloze

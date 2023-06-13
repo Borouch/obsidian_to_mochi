@@ -7,9 +7,7 @@ import {MochiDeckService} from "@src/services/MochiDeckService";
 
 export class MochiCardService {
     public static async indexCards() {
-        const cards = await MochiSyncService.mochiCardController.index()
-        MochiSyncService.mochiCards = cards;
-        return cards
+        return await MochiSyncService.mochiCardController.index()
     }
 
     public static async storeCards(cards: AnkiConnectNote[]): Promise<MochiCard[]> {
@@ -34,7 +32,7 @@ export class MochiCardService {
             const deck = await MochiDeckService.findOrCreateDeck(card.ankiNote.deckName)
             const content = MochiSyncService.getGeneratedContentFromFields(card.ankiNote.fields)
             const dto: MochiCardDTO = {"deck-id": deck.id, content: content}
-            const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.update(card.identifier, dto)
+            const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto,card.identifier)
             if (!mochiCard) {
                 throw new ModelNotFoundError('mochi card failed to be created');
             }

@@ -9,13 +9,13 @@ import {AbstractCard} from "@src/models/AbstractCard";
 
 export const TAG_PREFIX:string = "Tags: "
 export const TAG_SEP:string = " "
-export const ID_REGEXP_STR: string = String.raw`\n?(?:<!--)?(?:ID: (\d+).*)`
+export const ID_REGEXP_STR: string = String.raw`\n?(?:<!--)?(?:ID: ([\w]+).*)`
 export const TAG_REGEXP_STR: string = String.raw`(Tags: .*)`
 export const OBS_TAG_REGEXP: RegExp = /#(\w+)/g
 
 export const ANKI_CLOZE_REGEXP: RegExp = /{{c\d+::[\s\S]+?}}/
-export const CLOZE_ERROR: number = 42
-export const NOTE_TYPE_ERROR: number = 69
+export const CLOZE_ERROR = '42'
+export const NOTE_TYPE_ERROR = '69'
 
 export function hasClozes(text: string): boolean {
 	/*Checks whether text actually has cloze deletions.*/

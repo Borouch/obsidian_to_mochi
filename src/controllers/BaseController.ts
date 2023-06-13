@@ -26,8 +26,9 @@ export abstract class BaseController<TModel,
         return this.mapperFactory().mapFromDTO(dto)
     }
 
-    public async store(dto: TStoreDTO, config: AxiosRequestConfig<any> = {}): Promise<TModel | null> {
-        const response = await Controller.store(this.RESOURCE, dto, config);
+    public async store(dto: TStoreDTO, postfix: string = '', config: AxiosRequestConfig<any> = {}): Promise<TModel | null> {
+        const path = postfix ? `${this.RESOURCE}/${postfix}` : this.RESOURCE
+        const response = await Controller.store(path, dto, config);
         if (!response) return null
         const storedDto: TIndexDTO | null = this.parseResponse(this.ENTITY, response)
         if (!storedDto) return null;
