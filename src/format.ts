@@ -1,10 +1,10 @@
-import { AnkiConnectNote } from './interfaces/note-interface'
 import { basename, extname } from 'path'
 import { Converter } from 'showdown'
 import { CachedMetadata } from 'obsidian'
  import * as c from './Constants'
 
 import showdownHighlight from 'showdown-highlight'
+import {AnkiConnectNote} from "@src/interfaces/IAnkiConnectNote";
 
 const ANKI_MATH_REGEXP:RegExp = /(\\\[[\s\S]*?\\\])|(\\\([\s\S]*?\\\))/g
 const HIGHLIGHT_REGEXP:RegExp = /==(.*?)==/g

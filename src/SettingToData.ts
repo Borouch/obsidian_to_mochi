@@ -26,7 +26,7 @@ export async function settingToData(app: App, settings: PluginSettings, fields_d
         tags: [settings.Defaults.Tag]
     }
 
-    result.MOCHI_CARD_IDS = MochiSyncService.mochiCards.map((c) => c.id)
+    result.EXISTING_MOCHI_CARD_IDS = MochiSyncService.mochiCards.map((c) => c.id)
 
     //RegExp section
     result.FROZEN_REGEXP = new RegExp(escapeRegex(settings.Syntax["Frozen Fields Line"]) + String.raw` - (.*?):\n((?:[^\n][\n]?)+)`, "g")
@@ -34,7 +34,7 @@ export async function settingToData(app: App, settings: PluginSettings, fields_d
     result.TAG_REGEXP = new RegExp(String.raw`^` + escapeRegex(settings.Syntax["File Tags Line"]) + String.raw`(?:\n|: )(.*)`, "m")
     result.CARD_REGEXP = new RegExp(String.raw`^` + escapeRegex(settings.Syntax["Begin Note"]) + String.raw`\n([\s\S]*?\n)` + escapeRegex(settings.Syntax["End Note"]), "gm")
     result.INLINE_REGEXP = new RegExp(escapeRegex(settings.Syntax["Begin Inline Note"]) + String.raw`(.*?)` + escapeRegex(settings.Syntax["End Inline Note"]), "g")
-    result.EMPTY_REGEXP = new RegExp(escapeRegex(settings.Syntax["Delete Note Line"]) + ID_REGEXP_STR, "g")
+    result.DELETE_REGEXP = new RegExp(escapeRegex(settings.Syntax["Delete Note Line"]) + ID_REGEXP_STR, "g")
 
     //Just a simple transfer
     result.curly_cloze = settings.Defaults.CurlyCloze

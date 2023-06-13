@@ -2,11 +2,7 @@ import {FileManager} from "@src/FilesManager";
 import {MochiCardController} from "@src/controllers/MochiCardController";
 import {MochiDeckController} from "@src/controllers/MochiDeckController";
 import {MochiDeck} from "@src/models/MochiDeck";
-import {AnkiConnectNote, AnkiConnectNoteAndID} from "@src/interfaces/IAnkiConnectNote";
-import {MochiDeckStoreDTO} from "@src/mappers/MochiDeckMapper";
-import {ModelNotFoundError} from "@src/exceptions/ModelNotFoundError";
 import {MochiCard} from "@src/models/MochiCard";
-import {MochiCardDTO} from "@src/mappers/MochiCardMapper";
 import {debug} from "@src/utils/Logger";
 import {MochiCardService} from "@src/services/MochiCardService";
 
@@ -19,6 +15,8 @@ export class MochiSyncService {
     public static async syncFileManagerWithRemote(manager: FileManager) {
         MochiSyncService.mochiDecks = await MochiSyncService.mochiDeckController.index() ?? []
         for (const cardFile of manager.cardsFiles) {
+
+            await MochiCardService.destroyCards(cardFile.mochiCardIdsToDelete)
             const storedCards: MochiCard[] = await MochiCardService.storeCards(cardFile.allTypeMochiCardsToAdd)
             const updatedCards: MochiCard[] = await MochiCardService.updateCards(cardFile.mochiCardsToEdit)
             const syncedCards = [...storedCards, ...updatedCards]
@@ -34,7 +32,7 @@ export class MochiSyncService {
             const cardsFile = manager.cardsFiles[i]
             const tFile = manager.tFiles[i]
             cardsFile.writeIDs()
-            cardsFile.removeEmpties()
+            cardsFile.performDelete()
             if (cardsFile.contents !== cardsFile.originalContents) {
                 await manager.app.vault.modify(tFile, cardsFile.contents)
             }
@@ -46,8 +44,6 @@ export class MochiSyncService {
     public static getGeneratedContentFromFields(fields: Record<string, string>) {
         return `${fields['Front']}\n---\n${fields['Back']}`
     }
-
-
 
 
 }

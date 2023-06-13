@@ -18,7 +18,7 @@ export abstract class BaseController<TModel,
         return dtos.map((dto) => this.mapperFactory().mapFromDTO(dto));
     }
 
-    public async show(id: number, config: AxiosRequestConfig<any> = {}): Promise<TModel | null> {
+    public async show(id: number | string, config: AxiosRequestConfig<any> = {}): Promise<TModel | null> {
         const response = await Controller.show(`${this.RESOURCE}/${id}`, config);
         if (!response) return null
         const dto: TIndexDTO | null = this.parseResponse(this.ENTITY, response)
@@ -35,13 +35,13 @@ export abstract class BaseController<TModel,
         return this.mapperFactory().mapFromDTO(storedDto);
     }
 
-    public async destroy(id: number, config: AxiosRequestConfig<any> = {}) {
+    public async destroy(id: number | string, config: AxiosRequestConfig<any> = {}) {
         const response = await Controller.destroy(`${this.RESOURCE}/${id}`, config);
         if (!response) return null
         return response.data ?? null;
     }
 
-    public async update(id: number, dto: TStoreDTO, config: AxiosRequestConfig<any> = {}) {
+    public async update(id: number | string, dto: TStoreDTO, config: AxiosRequestConfig<any> = {}) {
         const response = await Controller.update(`${this.RESOURCE}/${id}`, dto, config);
         if (!response) return null
         const updatedDto: TIndexDTO | null = this.parseResponse(this.ENTITY, response)

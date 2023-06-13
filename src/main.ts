@@ -217,12 +217,12 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
         this.addSettingTab(new SettingsTab(this.app, this));
 
-        this.addRibbonIcon('anki', 'Obsidian_to_Anki - Scan Vault', async () => {
+        this.addRibbonIcon('anki', 'Obsidian_to_mochi - Scan Vault', async () => {
             await this.scanVault()
         })
 
         this.addCommand({
-            id: 'anki-scan-vault',
+            id: 'mochi-scan-vault',
             name: 'Scan Vault',
             callback: async () => {
                 await this.scanVault()

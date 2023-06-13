@@ -11,6 +11,7 @@ export class MochiCardService {
     }
 
     public static async storeCards(cards: AnkiConnectNote[]): Promise<MochiCard[]> {
+        if (cards.length <= 0) return []
         const mochiCards: MochiCard[] = []
         for (const card of cards) {
             const deck = await MochiDeckService.findOrCreateDeck(card.deckName)
@@ -27,17 +28,27 @@ export class MochiCardService {
     }
 
     public static async updateCards(cards: AnkiConnectNoteAndID[]) {
+        if (cards.length <= 0) return []
+
         const mochiCards: MochiCard[] = []
         for (const card of cards) {
             const deck = await MochiDeckService.findOrCreateDeck(card.ankiNote.deckName)
             const content = MochiSyncService.getGeneratedContentFromFields(card.ankiNote.fields)
             const dto: MochiCardDTO = {"deck-id": deck.id, content: content}
-            const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto,card.identifier)
+            const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto, card.identifier)
             if (!mochiCard) {
                 throw new ModelNotFoundError('mochi card failed to be created');
             }
             mochiCards.push(mochiCard)
         }
         return mochiCards
+    }
+
+    public static async destroyCards(ids: string[]) {
+        if (ids.length <= 0) return []
+
+        for (const id of ids) {
+            await MochiSyncService.mochiCardController.destroy(id)
+        }
     }
 }

@@ -12,6 +12,7 @@ import {CardsFileSettingsData} from "@src/interfaces/ISettings";
 import {RegexCard} from "@src/models/RegexCard";
 import {InlineCard} from "@src/modeI/InlineCard.ts";
 import {debug} from "@src/utils/Logger";
+import {ArrayUtil} from "@src/utils/ArrayUtil";
 
 const double_regexp: RegExp = /(?:\r\n|\r|\n)((?:\r\n|\r|\n)(?:<!--)?ID: \d+)/g
 
@@ -63,7 +64,7 @@ function contained_in(span: [number, number], spans: Array<[number, number]>): b
     )
 }
 
-function* matchNotIgnored(pattern: RegExp, text: string, ignore_spans: Array<[number, number]>): IterableIterator<RegExpMatchArray> {
+function* findMatchNotIgnored(pattern: RegExp, text: string, ignore_spans: Array<[number, number]>): IterableIterator<RegExpMatchArray> {
     let matches = text.matchAll(pattern)
     for (let match of matches) {
         const matchSpan: [number, number] = [match.index, match.index + match[0].length]
@@ -87,7 +88,7 @@ abstract class AbstractCardsFile {
 
     mochiCardsToAdd: AnkiConnectNote[]
     mochiCardsToEdit: AnkiConnectNoteAndID[]
-    mochiCardsToDelete: number[]
+    mochiCardIdsToDelete: string[]
 
     idIndexes: number[]
     allTypeMochiCardsToAdd: AnkiConnectNote[]
@@ -150,9 +151,14 @@ abstract class AbstractCardsFile {
     abstract scanFileForCardsCRUD(): void
 
     scanCardDeletions() {
-        for (let match of this.contents.matchAll(this.data.EMPTY_REGEXP)) {
-            this.mochiCardsToDelete.push(parseInt(match[1]))
+        for (let match of this.contents.matchAll(this.data.DELETE_REGEXP)) {
+            const mochiCardId = match[1]
+            this.mochiCardIdsToDelete.push(mochiCardId)
+            ArrayUtil.removeArrayItem(
+                mochiCardId, this.mochiCardsToEdit,
+                (mochiCard: AnkiConnectNoteAndID, id: string) => id === mochiCard.identifier)
         }
+
     }
 
     getContextAtIndex(position: number): string {
@@ -188,8 +194,8 @@ abstract class AbstractCardsFile {
 
     abstract writeIDs(): void
 
-    removeEmpties() {
-        this.contents = this.contents.replace(this.data.EMPTY_REGEXP, "")
+    performDelete() {
+        this.contents = this.contents.replace(this.data.DELETE_REGEXP, "")
     }
 
     getAddNotes(): AnkiConnect.AnkiConnectRequest {
@@ -201,7 +207,7 @@ abstract class AbstractCardsFile {
     }
 
     getDeleteNotes(): AnkiConnect.AnkiConnectRequest {
-        return AnkiConnect.deleteNotes(this.mochiCardsToDelete)
+        return AnkiConnect.deleteNotes(this.mochiCardIdsToDelete)
     }
 
     getUpdateFields(): AnkiConnect.AnkiConnectRequest {
@@ -292,7 +298,7 @@ export class CardsFile extends AbstractCardsFile {
         this.inlineIdIndexes = []
         this.regexIdIndexes = []
         this.mochiCardsToEdit = []
-        this.mochiCardsToDelete = []
+        this.mochiCardIdsToDelete = []
     }
 
     /*
@@ -323,7 +329,7 @@ export class CardsFile extends AbstractCardsFile {
                 parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
                 this.mochiCardsToAdd.push(parsed.ankiNote)
                 this.idIndexes.push(position)
-            } else if (!this.data.MOCHI_CARD_IDS.includes(parsed.identifier)) {
+            } else if (!this.data.EXISTING_MOCHI_CARD_IDS.includes(parsed.identifier)) {
                 if (parsed.identifier == CLOZE_ERROR) {
                     continue
                 }
@@ -361,7 +367,7 @@ export class CardsFile extends AbstractCardsFile {
                 parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
                 this.inlineCardsToAdd.push(parsed.ankiNote)
                 this.inlineIdIndexes.push(position)
-            } else if (!this.data.MOCHI_CARD_IDS.includes(parsed.identifier)) {
+            } else if (!this.data.EXISTING_MOCHI_CARD_IDS.includes(parsed.identifier)) {
                 // Need to show an error
                 if (parsed.identifier == CLOZE_ERROR) {
                     continue
@@ -384,7 +390,7 @@ export class CardsFile extends AbstractCardsFile {
                 let id_str = search_id ? ID_REGEXP_STR : ""
                 let tag_str = search_tags ? TAG_REGEXP_STR : ""
                 let regexp: RegExp = new RegExp(regexp_str + tag_str + id_str, 'gm')
-                for (let match of matchNotIgnored(regexp, this.contents, this.ignore_spans)) {
+                for (let match of findMatchNotIgnored(regexp, this.contents, this.ignore_spans)) {
                     this.ignore_spans.push([match.index, match.index + match[0].length])
                     const parsed: AnkiConnectNoteAndID = new RegexCard(
                         match, note_type, this.data.fields_dict,
@@ -396,9 +402,9 @@ export class CardsFile extends AbstractCardsFile {
                         this.data,
                         this.data.add_context ? this.getContextAtIndex(match.index) : ""
                     )
-                    debugger
+
                     if (search_id) {
-                        if (!(this.data.MOCHI_CARD_IDS.includes(parsed.identifier))) {
+                        if (!(this.data.EXISTING_MOCHI_CARD_IDS.includes(parsed.identifier))) {
                             if (parsed.identifier == CLOZE_ERROR) {
                                 // This means it wasn't actually a card! So we should remove it from ignore_spans
                                 this.ignore_spans.pop()
@@ -463,6 +469,7 @@ export class CardsFile extends AbstractCardsFile {
                 }
             }
         )
+
         let regex_inserts: [number, string][] = []
         this.regexIdIndexes.forEach(
             (id_position: number, index: number) => {
@@ -472,6 +479,7 @@ export class CardsFile extends AbstractCardsFile {
                 }
             }
         )
+
         this.contents = string_insert(this.contents, normal_inserts.concat(inline_inserts).concat(regex_inserts))
         this.fixNewLineIds()
     }

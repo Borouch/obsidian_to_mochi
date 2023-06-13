@@ -118,7 +118,7 @@ export class FileManager {
         result.TAG_REGEXP = this.data.TAG_REGEXP
         result.CARD_REGEXP = this.data.CARD_REGEXP
         result.INLINE_REGEXP = this.data.INLINE_REGEXP
-        result.EMPTY_REGEXP = this.data.EMPTY_REGEXP
+        result.DELETE_REGEXP = this.data.DELETE_REGEXP
         result.template.deckName = this.getDefaultDeck(file, folderPathList)
         result.template.tags = this.getDefaultTags(file, folderPathList)
         return result
@@ -269,7 +269,7 @@ export class FileManager {
             let tFile = this.tFiles[i]
             cardsFile.ankiTags = ankiTags
             cardsFile.writeIDs()
-            cardsFile.removeEmpties()
+            cardsFile.performDelete()
             if (cardsFile.contents !== cardsFile.originalContents) {
                 await this.app.vault.modify(tFile, cardsFile.contents)
             }
