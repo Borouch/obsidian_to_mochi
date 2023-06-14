@@ -42,9 +42,9 @@ export function findMochiTemplateFieldIdByName(fieldName: string, mochiTemplate:
 
 export function findMochiTemplateFromName(cardTemplateName: string) {
     const mochiTemplate = MochiSyncService.mochiTemplates.find(
-        (t) => t.name === this.cardTemplateName
+        (t) => t.name === cardTemplateName
     );
-    if (this.cardTemplateName && !mochiTemplate)
+    if (cardTemplateName && !mochiTemplate)
         throw new ModelNotFoundError("mochi template not found");
     return mochiTemplate
 }

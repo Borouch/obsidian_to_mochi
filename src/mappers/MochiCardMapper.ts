@@ -59,11 +59,6 @@ export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCar
             "template-id": model.templateId,
             pos: model.pos,
             fields: model.fieldById,
-            id: model.id,
-            reviews: model.reviews,
-            "created-at": {
-                date: model.createdAt.date
-            },
             attachments: [],// Attachments field is not available in MochiCard, defaulting to empty array
             // fill in the boolean fields according to your business logic, defaulting to false
             "archived?": false,

@@ -10,10 +10,10 @@ import {FormatConverter} from './format'
 import {CachedMetadata, HeadingCache} from 'obsidian'
 import {CardsFileSettingsData} from "@src/interfaces/ISettings";
 import {RegexCard} from "@src/models/RegexCard";
-import {InlineCard} from "@src/modeI/InlineCard.ts";
 import {debug} from "@src/utils/Logger";
 import {ArrayUtil} from "@src/utils/ArrayUtil";
 import {MochiCard} from "@src/models/MochiCard";
+import {InlineCard} from "@src/models/InlineCard";
 
 const double_regexp: RegExp = /(?:\r\n|\r|\n)((?:\r\n|\r|\n)(?:<!--)?ID: \d+)/g
 

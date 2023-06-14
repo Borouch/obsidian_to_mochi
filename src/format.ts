@@ -94,8 +94,9 @@ export class FormatConverter {
         frozen_fields_dict: Record<string, Record<string, string>>
     ): void {
         for (let fieldId in mochiCard.fieldById) {
+            const fieldName = mochiCard.template.fields[fieldId].name
             mochiCard.fieldById[fieldId].value +=
-                frozen_fields_dict[mochiCard.template.name][fieldId];
+                frozen_fields_dict[mochiCard.template.name][fieldName];
         }
     }
 

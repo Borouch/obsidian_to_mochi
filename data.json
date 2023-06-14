@@ -2,7 +2,7 @@
   "settings": {
     "CUSTOM_REGEXPS": {
       "Basic (type in the answer)": "",
-      "Basic": "",
+      "Basic": "((?:[^\\n][\\n]?)+\\n)---((?:\\n(?:^.{1,3}$|^.{4}(?<!<!--).*))*)",
       "DRAW": "",
       "Cloze (overlapping)": "",
       "Basic (and reversed card)": ""
@@ -15,8 +15,12 @@
       "Basic (and reversed card)": "Front"
     },
     "CONTEXT_FIELDS": {},
-    "FOLDER_DECKS": {},
-    "FOLDER_TAGS": {},
+    "FOLDER_DECKS": {
+      "templater": ""
+    },
+    "FOLDER_TAGS": {
+      "templater": ""
+    },
     "Syntax": {
       "Begin Note": "START",
       "End Note": "END",
@@ -40,7 +44,10 @@
     }
   },
   "Added Media": [],
-  "File Hashes": {},
+  "File Hashes": {
+    "templater/SR token.md": "2af7c4ac3686c7b7373b9984dbcc3775",
+    "SR.md": "64a784be4292ccda93adb916ff1058c0"
+  },
   "fields_dict": {
     "Basic (type in the answer)": [
       "Front",
