@@ -46,7 +46,9 @@
   "Added Media": [],
   "File Hashes": {
     "templater/SR token.md": "2af7c4ac3686c7b7373b9984dbcc3775",
-    "SR.md": "64a784be4292ccda93adb916ff1058c0"
+    "SR.md": "880d14128e848d4e31f230d9d47c15ce",
+    "SR 2.md": "d41d8cd98f00b204e9800998ecf8427e",
+    "Spaced repetition dashboard.md": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "fields_dict": {
     "Basic (type in the answer)": [
