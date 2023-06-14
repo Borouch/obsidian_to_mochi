@@ -5,10 +5,12 @@ import {MochiDeck} from "@src/models/MochiDeck";
 import {MochiCard} from "@src/models/MochiCard";
 import {debug} from "@src/utils/Logger";
 import {MochiCardService} from "@src/services/MochiCardService";
+import {MochiTemplate} from "@src/models/MochiTemplate";
 
 export class MochiSyncService {
     public static mochiDecks: MochiDeck[] = []
     public static mochiCards: MochiCard[] = []
+    public static mochiTemplates: MochiTemplate[] = []
     public static mochiDeckController = new MochiDeckController()
     public static mochiCardController = new MochiCardController()
 
@@ -37,6 +39,10 @@ export class MochiSyncService {
                 await manager.app.vault.modify(tFile, cardsFile.contents)
             }
         }
+
+    }
+
+    public static async syncMediaChanges() {
 
     }
 

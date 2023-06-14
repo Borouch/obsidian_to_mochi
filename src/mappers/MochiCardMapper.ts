@@ -1,7 +1,10 @@
 import {MochiAttachmentDTO} from "@src/models/MochiAttachment";
 import {Mapper} from "@src/interfaces/Mapper";
 import {MochiCard} from "@src/models/MochiCard";
-
+export interface MochiCardField {
+    id: string;
+    value: string;
+}
 export interface MochiCardDTO {
     content: string;
     "deck-id": string;
@@ -10,10 +13,7 @@ export interface MochiCardDTO {
     "review-reverse?"?: boolean;
     pos?: string;
     fields?: {
-        [fieldId: string]: {
-            id: string;
-            value: string;
-        };
+        [fieldId: string]: MochiCardField;
     };
     attachments?: MochiAttachmentDTO[];
     id?: string;

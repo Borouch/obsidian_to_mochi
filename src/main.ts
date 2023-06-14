@@ -10,6 +10,7 @@ import {FileManager} from "@src/FilesManager";
 import {ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {MochiCardService} from "@src/services/MochiCardService";
+import {MochiTemplateService} from "@src/services/MochiTemplateService";
 
 axios.defaults.baseURL = 'https://app.mochi.cards/api';
 axios.defaults.headers.common['Accept'] = 'application/json'
@@ -191,6 +192,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
     async onload() {
         console.log('loading Obsidian_to_Anki...');
+        await MochiTemplateService.index()
         addIcon('anki', ANKI_ICON)
 
         try {

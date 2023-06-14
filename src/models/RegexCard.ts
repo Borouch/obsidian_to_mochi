@@ -78,4 +78,6 @@ export class RegexCard {
         template["deckName"] = deck
         return {ankiNote: template, identifier: this.identifier}
     }
+
+
 }

@@ -216,6 +216,29 @@ export class FileManager {
         await this.parse_requests_1()
     }
 
+    createAttachments(){
+        for (let file of this.cardsFiles) {
+            const mediaLinks = difference(file.formatter.detectedMedia, this.added_media_set)
+            for (let mediaLink of mediaLinks) {
+                console.log("Adding media file: ", mediaLink)
+                const dataFile = this.app.metadataCache.getFirstLinkpathDest(mediaLink, file.path)
+                if (!(dataFile)) {
+                    console.warn("Couldn't locate media file ", mediaLink)
+                } else {
+                    // Located successfully, so treat as if we've added the media
+                    this.added_media_set.add(mediaLink)
+                    const realPath = (this.app.vault.adapter as FileSystemAdapter).getFullPath(dataFile.path)
+                    temp.push(
+                        AnkiConnect.storeMediaFileByPath(
+                            basename(mediaLink),
+                            realPath
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     async parse_requests_1() {
         const response = this.requests_1_result as Requests1Result
         if (response[5].result.length >= 1 && response[5].result[0].error != null) {
