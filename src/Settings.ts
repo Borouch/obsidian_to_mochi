@@ -41,12 +41,12 @@ export class SettingsTab extends PluginSettingTab {
         let link_field = new Setting(row_cells[2] as HTMLElement)
             .addDropdown(
                 async dropdown => {
-                    if (!(plugin.fieldsDict[note_type])) {
-                        plugin.fieldsDict = await plugin.loadFieldsDict()
-                        if (Object.keys(plugin.fieldsDict).length != plugin.noteTypes.length) {
+                    if (!(plugin.fieldNamesByTemplateName[note_type])) {
+                        plugin.fieldNamesByTemplateName = await plugin.loadFieldsDict()
+                        if (Object.keys(plugin.fieldNamesByTemplateName).length != plugin.mochiTemplateNames.length) {
                             new Notice('Need to connect to Anki to generate fields dictionary...')
                             try {
-                                plugin.fieldsDict = await plugin.generateFieldsDict()
+                                plugin.fieldNamesByTemplateName = await plugin.generateFieldNamesByTemplateName()
                                 new Notice("Fields dictionary successfully generated!")
                             } catch (e) {
                                 new Notice("Couldn't connect to Anki! Check console for error message.")
@@ -54,7 +54,7 @@ export class SettingsTab extends PluginSettingTab {
                             }
                         }
                     }
-					const field_names = plugin.fieldsDict[note_type]
+					const field_names = plugin.fieldNamesByTemplateName[note_type]
                     for (let field of field_names) {
                         dropdown.addOption(field, field)
                     }
@@ -78,7 +78,7 @@ export class SettingsTab extends PluginSettingTab {
         let context_field = new Setting(row_cells[3] as HTMLElement)
             .addDropdown(
                 async dropdown => {
-                    const field_names = plugin.fieldsDict[note_type]
+                    const field_names = plugin.fieldNamesByTemplateName[note_type]
                     for (let field of field_names) {
                         dropdown.addOption(field, field)
                     }
@@ -132,7 +132,7 @@ export class SettingsTab extends PluginSettingTab {
         if (!(plugin.settings.hasOwnProperty("CONTEXT_FIELDS"))) {
             plugin.settings.CONTEXT_FIELDS = {}
         }
-        for (let note_type of plugin.noteTypes) {
+        for (let note_type of plugin.mochiTemplateNames) {
             let row = main_body.insertRow()
 
             row.insertCell()
@@ -340,14 +340,13 @@ export class SettingsTab extends PluginSettingTab {
                             new Notice("Need to connect to Anki to update note types...")
                             try {
 
-                                plugin.noteTypes = MochiSyncService.mochiTemplates.map((t) => t.name)
-                                debug({noteTypesFromAnki: plugin.noteTypes})
+                                plugin.mochiTemplateNames = MochiSyncService.mochiTemplates.map((t) => t.name)
                                 plugin.regenerateSettingsRegexps()
-                                plugin.fieldsDict = await plugin.loadFieldsDict()
-                                if (Object.keys(plugin.fieldsDict).length != plugin.noteTypes.length) {
+                                plugin.fieldNamesByTemplateName = await plugin.loadFieldsDict()
+                                if (Object.keys(plugin.fieldNamesByTemplateName).length != plugin.mochiTemplateNames.length) {
                                     new Notice('Need to connect to Anki to generate fields dictionary...')
                                     try {
-                                        plugin.fieldsDict = await plugin.generateFieldsDict()
+                                        plugin.fieldNamesByTemplateName = await plugin.generateFieldNamesByTemplateName()
                                         new Notice("Fields dictionary successfully generated!")
                                     } catch (e) {
                                         new Notice("Couldn't connect to Anki! Check console for error message.")

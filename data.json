@@ -303,7 +303,8 @@
     "tasks/task-0f3r46.md": "e75bbccc01036dd312cd6bb24356b80d",
     "tasks/task-0bfbad.md": "c376d1a13cc252a70ba418c2717f50d5",
     "tasks/task-090olc.md": "f89fb9f4ce4d55f0e810f4c98e7a5726",
-    "SR.md": "9c908bd126eea6c7a1cc7a83fe09221b"
+    "SR.md": "9c908bd126eea6c7a1cc7a83fe09221b",
+    "bash.md": "2a95c071545081d4bafac8fb26ba1b91"
   },
   "fields_dict": {
     "Basic": [
@@ -314,49 +315,41 @@
       "Front",
       "Back"
     ],
-    "Basic (optional reversed card)": [
-      "Front",
-      "Back"
-    ],
     "Basic (type in the answer)": [
       "Front",
       "Back"
     ],
-    "Cloze": [
-      "Text",
-      "Extra"
-    ],
     "Cloze (overlapping)": [
-      "Original",
-      "Title",
-      "Remarks",
+      "Text15",
+      "Text13",
       "Sources",
       "Settings",
+      "Title",
       "Text1",
-      "Text2",
-      "Text3",
-      "Text4",
-      "Text5",
-      "Text6",
-      "Text7",
-      "Text8",
-      "Text9",
-      "Text10",
-      "Text11",
-      "Text12",
-      "Text13",
-      "Text14",
-      "Text15",
-      "Text16",
-      "Text17",
       "Text18",
+      "Text5",
+      "Text10",
+      "Original",
+      "Text14",
+      "Remarks",
+      "Text9",
+      "Text16",
+      "Text2",
+      "Text8",
+      "Text6",
       "Text19",
       "Text20",
+      "Text17",
+      "Text3",
+      "Text7",
+      "Text11",
+      "Text4",
+      "Text12",
       "Full"
     ],
-    "基础": [
-      "正面",
-      "背面"
+    "DRAW": [
+      "DRAW",
+      "Q"
     ]
   }
 }
