@@ -34,13 +34,13 @@ export function mochiCardHasClozes(mochiCard: MochiCard): boolean {
 
 export class BaseCard extends AbstractCard {
 
-    getSplitText(): string[] {
+    getContentLines(): string[] {
         return this.text.split("\n")
     }
 
-    getIdentifier(): number | null {
+    getIdentifier(): string | null {
         if (this.ID_REGEXP.test(this.contentLines[this.contentLines.length - 1])) {
-            return parseInt(this.ID_REGEXP.exec(this.contentLines.pop())[1])
+            return this.ID_REGEXP.exec(this.contentLines.pop())[1]
         } else {
             return null
         }
@@ -70,7 +70,7 @@ export class BaseCard extends AbstractCard {
         return [line, this.currentField]
     }
 
-    getFields(): Record<string, string> {
+    getCardFieldContentByFieldNameDict(): Record<string, string> {
         let fields: Record<string, string> = {}
         for (let field of this.field_names) {
             fields[field] = ""

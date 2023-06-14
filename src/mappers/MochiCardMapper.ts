@@ -1,10 +1,12 @@
 import {MochiAttachmentDTO} from "@src/models/MochiAttachment";
 import {Mapper} from "@src/interfaces/Mapper";
 import {MochiCard} from "@src/models/MochiCard";
+
 export interface MochiCardField {
     id: string;
     value: string;
 }
+
 export interface MochiCardDTO {
     content: string;
     "deck-id": string;
@@ -24,9 +26,13 @@ export interface MochiCardDTO {
 }
 
 
-
-
 export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCardDTO> {
+    private static _i = new MochiCardMapper()
+    public static i = this._i
+
+    private constructor() {
+    }
+
     mapFromDTO(dto: MochiCardDTO): MochiCard {
         return {
             tags: [], // Tags field is not available in MochiCardDTO, defaulting to empty array
@@ -58,7 +64,7 @@ export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCar
             "created-at": {
                 date: model.createdAt.date
             },
-            attachments: [] ,// Attachments field is not available in MochiCard, defaulting to empty array
+            attachments: [],// Attachments field is not available in MochiCard, defaulting to empty array
             // fill in the boolean fields according to your business logic, defaulting to false
             "archived?": false,
             "review-reverse?": false

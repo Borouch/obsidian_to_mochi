@@ -9,7 +9,7 @@ export interface MochiCard {
     tags: string[];
     content: string;
     name?: string;
-    deckName: string,
+    deckName?: string,
     deckId: string | null;
     fieldById?: {
         [mochiCardFieldId: string]: MochiCardField;

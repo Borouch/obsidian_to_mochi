@@ -13,7 +13,7 @@ export class MochiCardController extends BaseController<MochiCard, MochiCardMapp
     }
 
     protected mapperFactory(): MochiCardMapper {
-        return new MochiCardMapper();
+        return MochiCardMapper.i;
     }
 
 }

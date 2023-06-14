@@ -13,10 +13,11 @@ import {RegexCard} from "@src/models/RegexCard";
 import {InlineCard} from "@src/modeI/InlineCard.ts";
 import {debug} from "@src/utils/Logger";
 import {ArrayUtil} from "@src/utils/ArrayUtil";
+import {MochiCard} from "@src/models/MochiCard";
 
 const double_regexp: RegExp = /(?:\r\n|\r|\n)((?:\r\n|\r|\n)(?:<!--)?ID: \d+)/g
 
-function id_to_str(identifier: number, inline: boolean = false, comment: boolean = false): string {
+function mochiCardIdToCardIdentifierToken(identifier: string, inline: boolean = false, comment: boolean = false): string {
     let result = "ID: " + identifier.toString()
     if (comment) {
         result = "<!--" + result + "-->"
@@ -86,12 +87,12 @@ abstract class AbstractCardsFile {
     targetDeckName: string
     globalTags: string
 
-    mochiCardsToAdd: AnkiConnectNote[]
-    mochiCardsToEdit: AnkiConnectNoteAndID[]
+    mochiCardsToAdd: MochiCard[]
+    mochiCardsToEdit: MochiCard[]
     mochiCardIdsToDelete: string[]
 
     idIndexes: number[]
-    allTypeMochiCardsToAdd: AnkiConnectNote[]
+    allTypeMochiCardsToAdd: MochiCard[]
 
     mochiCardIds: Array<string | null> = []
     cardIds: number[]
@@ -128,7 +129,7 @@ abstract class AbstractCardsFile {
                 this.data.curly_cloze,
                 this.data.highlights_to_cloze,
                 this.formatter
-            ).getFields()
+            ).getCardFieldContentByFieldNameDict()
             frozen_fields_dict[note_type] = parsed_fields
         }
         this.frozenFieldDict = frozen_fields_dict
@@ -156,7 +157,7 @@ abstract class AbstractCardsFile {
             this.mochiCardIdsToDelete.push(mochiCardId)
             ArrayUtil.removeArrayItem(
                 mochiCardId, this.mochiCardsToEdit,
-                (mochiCard: AnkiConnectNoteAndID, id: string) => id === mochiCard.identifier)
+                (mochiCard: MochiCard, id: string) => id === mochiCard.id)
         }
 
     }
@@ -257,9 +258,9 @@ abstract class AbstractCardsFile {
 export class CardsFile extends AbstractCardsFile {
     ignore_spans: [number, number][]
     custom_note_type_regexps: Record<string, string>
-    inlineCardsToAdd: AnkiConnectNote[]
+    inlineCardsToAdd: MochiCard[]
     inlineIdIndexes: number[]
-    regexCardsToAdd: AnkiConnectNote[]
+    regexCardsToAdd: MochiCard[]
     regexIdIndexes: number[]
 
     constructor(file_contents: string, path: string, url: string, data: CardsFileSettingsData, file_cache: CachedMetadata) {
@@ -309,38 +310,37 @@ export class CardsFile extends AbstractCardsFile {
         for (let card_match of this.contents.matchAll(this.data.CARD_REGEXP)) {
             // That second thing essentially gets the index of the end of the first capture group.
             let [cardContent, position]: [string, number] = [card_match[1], card_match.index + card_match[0].indexOf(card_match[1]) + card_match[1].length]
-            let parsed: AnkiConnectNoteAndID = new BaseCard(
+            let mochiCard: MochiCard = new BaseCard(
                 cardContent,
                 this.data.fields_dict,
                 this.data.curly_cloze,
                 this.data.highlights_to_cloze,
                 this.formatter
-            ).parseToAnkiConnectNote(
+            ).parseToMochiCard(
                 this.targetDeckName,
                 this.url,
                 this.frozenFieldDict,
                 this.data,
                 this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(card_match.index) : ""
             )
-            const doesNotHaveIdWrittenInCard = parsed.identifier == null
 
-            if (doesNotHaveIdWrittenInCard) {
+            if (mochiCard.id == null) {
                 // Need to make sure global_tags get added
-                parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
-                this.mochiCardsToAdd.push(parsed.ankiNote)
+                mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
+                this.mochiCardsToAdd.push(mochiCard)
                 this.idIndexes.push(position)
-            } else if (!this.data.EXISTING_MOCHI_CARD_IDS.includes(parsed.identifier)) {
-                if (parsed.identifier == CLOZE_ERROR) {
+            } else if (!this.data.EXISTING_MOCHI_CARD_IDS.includes(mochiCard.id)) {
+                if (mochiCard.id == CLOZE_ERROR) {
                     continue
                 }
                 // Need to show an error otherwise
-                else if (parsed.identifier == NOTE_TYPE_ERROR) {
-                    console.warn("Did not recognise note type ", parsed.ankiNote.modelName, " in file ", this.path)
+                else if (mochiCard.id == NOTE_TYPE_ERROR) {
+                    console.warn("Did not recognise note type ", mochiCard.template.name, " in file ", this.path)
                 } else {
-                    console.warn("Note with id", parsed.identifier, " in file ", this.path, " does not exist in Anki!")
+                    console.warn("Note with id", mochiCard.id, " in file ", this.path, " does not exist in Anki!")
                 }
             } else {
-                this.mochiCardsToEdit.push(parsed)
+                this.mochiCardsToEdit.push(mochiCard)
             }
         }
     }
@@ -349,32 +349,32 @@ export class CardsFile extends AbstractCardsFile {
         for (let note_match of this.contents.matchAll(this.data.INLINE_REGEXP)) {
             let [note, position]: [string, number] = [note_match[1], note_match.index + note_match[0].indexOf(note_match[1]) + note_match[1].length]
             // That second thing essentially gets the index of the end of the first capture group.
-            let parsed = new InlineCard(
+            let mochiCard = new InlineCard(
                 note,
                 this.data.fields_dict,
                 this.data.curly_cloze,
                 this.data.highlights_to_cloze,
                 this.formatter
-            ).parseToAnkiConnectNote(
+            ).parseToMochiCard(
                 this.targetDeckName,
                 this.url,
                 this.frozenFieldDict,
                 this.data,
                 this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(note_match.index) : ""
             )
-            if (parsed.identifier == null) {
+            if (mochiCard.id == null) {
                 // Need to make sure global_tags get added
-                parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
-                this.inlineCardsToAdd.push(parsed.ankiNote)
+                mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
+                this.inlineCardsToAdd.push(mochiCard)
                 this.inlineIdIndexes.push(position)
-            } else if (!this.data.EXISTING_MOCHI_CARD_IDS.includes(parsed.identifier)) {
+            } else if (!this.data.EXISTING_MOCHI_CARD_IDS.includes(mochiCard.id)) {
                 // Need to show an error
-                if (parsed.identifier == CLOZE_ERROR) {
+                if (mochiCard.id == CLOZE_ERROR) {
                     continue
                 }
-                console.warn("Note with id", parsed.identifier, " in file ", this.path, " does not exist in Anki!")
+                console.warn("Note with id", mochiCard.id, " in file ", this.path, " does not exist in Anki!")
             } else {
-                this.mochiCardsToEdit.push(parsed)
+                this.mochiCardsToEdit.push(mochiCard)
             }
         }
     }
@@ -392,7 +392,7 @@ export class CardsFile extends AbstractCardsFile {
                 let regexp: RegExp = new RegExp(regexp_str + tag_str + id_str, 'gm')
                 for (let match of findMatchNotIgnored(regexp, this.contents, this.ignore_spans)) {
                     this.ignore_spans.push([match.index, match.index + match[0].length])
-                    const parsed: AnkiConnectNoteAndID = new RegexCard(
+                    const mochiCard: MochiCard = new RegexCard(
                         match, note_type, this.data.fields_dict,
                         search_tags, search_id, this.data.curly_cloze, this.data.highlights_to_cloze, this.formatter
                     ).parseToMochiCard(
@@ -404,24 +404,24 @@ export class CardsFile extends AbstractCardsFile {
                     )
 
                     if (search_id) {
-                        if (!(this.data.EXISTING_MOCHI_CARD_IDS.includes(parsed.identifier))) {
-                            if (parsed.identifier == CLOZE_ERROR) {
+                        if (!(this.data.EXISTING_MOCHI_CARD_IDS.includes(mochiCard.id))) {
+                            if (mochiCard.id == CLOZE_ERROR) {
                                 // This means it wasn't actually a card! So we should remove it from ignore_spans
                                 this.ignore_spans.pop()
                                 continue
                             }
-                            console.warn("Note with id", parsed.identifier, " in file ", this.path, " does not exist in Anki!")
+                            console.warn("Note with id", mochiCard.id, " in file ", this.path, " does not exist in Anki!")
                         } else {
-                            this.mochiCardsToEdit.push(parsed)
+                            this.mochiCardsToEdit.push(mochiCard)
                         }
                     } else {
-                        if (parsed.identifier == CLOZE_ERROR) {
+                        if (mochiCard.id == CLOZE_ERROR) {
                             // This means it wasn't actually a card! So we should remove it from ignore_spans
                             this.ignore_spans.pop()
                             continue
                         }
-                        parsed.ankiNote.tags.push(...this.globalTags.split(TAG_SEP))
-                        this.regexCardsToAdd.push(parsed.ankiNote)
+                        mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
+                        this.regexCardsToAdd.push(mochiCard)
                         this.regexIdIndexes.push(match.index + match[0].length)
                     }
                 }
@@ -456,7 +456,7 @@ export class CardsFile extends AbstractCardsFile {
             (id_position: number, index: number) => {
                 const identifier: string | null = this.mochiCardIds[index]
                 if (identifier) {
-                    normal_inserts.push([id_position, id_to_str(identifier, false, this.data.comment)])
+                    normal_inserts.push([id_position, mochiCardIdToCardIdentifierToken(identifier, false, this.data.comment)])
                 }
             }
         )
@@ -465,7 +465,7 @@ export class CardsFile extends AbstractCardsFile {
             (id_position: number, index: number) => {
                 const identifier: string | null = this.mochiCardIds[index + this.mochiCardsToAdd.length] //Since regular then inline
                 if (identifier) {
-                    inline_inserts.push([id_position, id_to_str(identifier, true, this.data.comment)])
+                    inline_inserts.push([id_position, mochiCardIdToCardIdentifierToken(identifier, true, this.data.comment)])
                 }
             }
         )
@@ -475,7 +475,7 @@ export class CardsFile extends AbstractCardsFile {
             (id_position: number, index: number) => {
                 const identifier: string | null = this.mochiCardIds[index + this.mochiCardsToAdd.length + this.inlineCardsToAdd.length] // Since regular then inline then regex
                 if (identifier) {
-                    regex_inserts.push([id_position, "\n" + id_to_str(identifier, false, this.data.comment)])
+                    regex_inserts.push([id_position, "\n" + mochiCardIdToCardIdentifierToken(identifier, false, this.data.comment)])
                 }
             }
         )

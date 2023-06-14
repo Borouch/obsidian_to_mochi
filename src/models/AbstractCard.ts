@@ -5,6 +5,11 @@ import { AnkiConnectNoteAndID } from "@src/interfaces/IAnkiConnectNote";
 import { NOTE_TYPE_ERROR, OBS_TAG_REGEXP } from "@src/models/BaseCard";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {MochiCard} from "@src/models/MochiCard";
+import {
+  findMochiTemplateFieldIdByName,
+  findMochiTemplateFromName,
+  makeMochiCardFieldById
+} from "@src/models/MochiTemplate";
 
 export abstract class AbstractCard {
   text: string;
@@ -33,7 +38,7 @@ export abstract class AbstractCard {
     this.current_field_num = 0;
     this.delete = false;
     this.no_note_type = false;
-    this.contentLines = this.getSplitText();
+    this.contentLines = this.getContentLines();
     this.identifier = this.getIdentifier();
     this.tags = this.getTags();
     this.cardTemplateName = this.getCardTemplateName();
@@ -48,68 +53,89 @@ export abstract class AbstractCard {
     this.highlights_to_cloze = highlightsToCloze;
   }
 
-  abstract getSplitText(): string[];
+  abstract getContentLines(): string[];
 
-  abstract getIdentifier(): number | null;
+  abstract getIdentifier(): string | null;
 
   abstract getTags(): string[];
 
   abstract getCardTemplateName(): string;
 
-  abstract getFields(): Record<string, string>;
+  abstract getCardFieldContentByFieldNameDict(): Record<string, string>;
 
-  parseToAnkiConnectNote(
+  parseToMochiCard(
     deckName: string,
     url: string,
-    frozen_fields_dict: FROZEN_FIELDS_DICT,
+    frozenFieldByCardTemplateNameDict: FROZEN_FIELDS_DICT,
     data: CardsFileSettingsData,
-    cardContextBreadcrumb: string
+    cardContextBreadcrumbText: string
   ): MochiCard {
 
     if (this.no_note_type) {
       this.identifier = NOTE_TYPE_ERROR
     }
 
-    const file_link_fields = data.fileLinkFieldsByCardTemplateName;
+    const mochiTemplate = findMochiTemplateFromName(this.cardTemplateName);
+    const mochiCardFieldById = makeMochiCardFieldById(
+        this.getCardFieldContentByFieldNameDict(),
+        mochiTemplate
+    );
+
+    const mochiCard: MochiCard = {
+      id: this.identifier,
+      tags: this.tags,
+      deckName: deckName,
+      template: mochiTemplate,
+      templateId: mochiTemplate.id,
+      fieldById: mochiCardFieldById,
+      deckId: null,
+      content: "",
+    };
+
     if (url) {
+      const fileLinkFieldsByCardTemplateNameDict =
+          data.fileLinkFieldsByCardTemplateName;
+      const fileLinkFieldName =
+          fileLinkFieldsByCardTemplateNameDict[this.cardTemplateName];
+      const fileLinkFieldId = findMochiTemplateFieldIdByName(
+          fileLinkFieldName,
+          mochiTemplate
+      );
       this.formatter.appendFileSourceLinkToMochiCardField(
-          template,
+          mochiCard,
           url,
-          file_link_fields[this.cardTemplateName]
+          fileLinkFieldId
       );
     }
-    if (Object.keys(frozen_fields_dict).length) {
+
+    if (Object.keys(frozenFieldByCardTemplateNameDict).length) {
       this.formatter.appendFrozenFieldToMochiCardField(
-          template,
-          frozen_fields_dict
+          mochiCard,
+          frozenFieldByCardTemplateNameDict
       );
     }
-    if (cardContextBreadcrumb) {
-      const context_field = data.contextFieldByCardTemplateName[this.cardTemplateName];
-      template["fields"][context_field] += cardContextBreadcrumb;
+    if (cardContextBreadcrumbText) {
+      this.formatter.appendContextFieldToMochiCardField(
+          mochiCard,
+          cardContextBreadcrumbText,
+          data.contextFieldByCardTemplateName
+      );
     }
     if (data.add_obs_tags) {
-      for (let key in template["fields"]) {
-        for (let match of template["fields"][key].matchAll(OBS_TAG_REGEXP)) {
+      for (let id in mochiCard.fieldById) {
+        for (let match of mochiCard.fieldById[id].value.matchAll(OBS_TAG_REGEXP)) {
           this.tags.push(match[1]);
         }
-        template["fields"][key] = template["fields"][key].replace(
+        mochiCard.fieldById[id].value = mochiCard.fieldById[id].value.replace(
             OBS_TAG_REGEXP,
             ""
         );
       }
     }
 
-    const mochiTemplate = MochiSyncService.mochiTemplates.find((t) => t.name === this.cardTemplateName)
-    const content = MochiSyncService.makeContentFromMochiFields(this.getFields())
-    const mochiCard: MochiCard = {
-      id: this.identifier,
-      tags: this.tags,
-      deckName: deckName,
-      templateId: mochiTemplate.id,
-      deckId: null,
-      content: content
-    }
+    mochiCard.content = MochiSyncService.makeContentFromMochiFields(
+        mochiCard.fieldById
+    );
 
     return mochiCard
   }
