@@ -161,7 +161,7 @@ abstract class AbstractCardsFile {
 
     }
 
-    getContextAtIndex(position: number): string {
+    getContextBreadcrumbAtIndex(position: number): string {
         let result: string = this.path
         let currentContext: HeadingCache[] = []
         if (!(this.tFileCache.hasOwnProperty('headings'))) {
@@ -320,7 +320,7 @@ export class CardsFile extends AbstractCardsFile {
                 this.url,
                 this.frozenFieldDict,
                 this.data,
-                this.data.add_context ? this.getContextAtIndex(card_match.index) : ""
+                this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(card_match.index) : ""
             )
             const doesNotHaveIdWrittenInCard = parsed.identifier == null
 
@@ -360,7 +360,7 @@ export class CardsFile extends AbstractCardsFile {
                 this.url,
                 this.frozenFieldDict,
                 this.data,
-                this.data.add_context ? this.getContextAtIndex(note_match.index) : ""
+                this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(note_match.index) : ""
             )
             if (parsed.identifier == null) {
                 // Need to make sure global_tags get added
@@ -395,12 +395,12 @@ export class CardsFile extends AbstractCardsFile {
                     const parsed: AnkiConnectNoteAndID = new RegexCard(
                         match, note_type, this.data.fields_dict,
                         search_tags, search_id, this.data.curly_cloze, this.data.highlights_to_cloze, this.formatter
-                    ).parseToAnkiConnectNote(
+                    ).parseToMochiCard(
                         this.targetDeckName,
                         this.url,
                         this.frozenFieldDict,
                         this.data,
-                        this.data.add_context ? this.getContextAtIndex(match.index) : ""
+                        this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(match.index) : ""
                     )
 
                     if (search_id) {

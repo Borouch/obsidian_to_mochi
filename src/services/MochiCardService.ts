@@ -15,7 +15,7 @@ export class MochiCardService {
         const mochiCards: MochiCard[] = []
         for (const card of cards) {
             const deck = await MochiDeckService.findOrCreateDeck(card.deckName)
-            const content = MochiSyncService.getGeneratedContentFromFields(card.fields)
+            const content = MochiSyncService.makeContentFromMochiFields(card.fields)
 
             const dto: MochiCardDTO = {"deck-id": deck.id, content: content}
             const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto)
@@ -33,7 +33,7 @@ export class MochiCardService {
         const mochiCards: MochiCard[] = []
         for (const card of cards) {
             const deck = await MochiDeckService.findOrCreateDeck(card.ankiNote.deckName)
-            const content = MochiSyncService.getGeneratedContentFromFields(card.ankiNote.fields)
+            const content = MochiSyncService.makeContentFromMochiFields(card.ankiNote.fields)
             const dto: MochiCardDTO = {"deck-id": deck.id, content: content}
             const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto, card.identifier)
             if (!mochiCard) {

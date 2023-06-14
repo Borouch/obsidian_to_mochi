@@ -3,12 +3,12 @@
 Input must be the note text.
 Does NOT deal with finding the note in the file.*/
 
-import {AnkiConnectNote} from "@src/interfaces/IAnkiConnectNote";
 import {AbstractCard} from "@src/models/AbstractCard";
+import {MochiCard} from "@src/models/MochiCard";
 
 
-export const TAG_PREFIX:string = "Tags: "
-export const TAG_SEP:string = " "
+export const TAG_PREFIX: string = "Tags: "
+export const TAG_SEP: string = " "
 export const ID_REGEXP_STR: string = String.raw`\n?(?:<!--)?(?:ID: ([\w]+).*)`
 export const TAG_REGEXP_STR: string = String.raw`(Tags: .*)`
 export const OBS_TAG_REGEXP: RegExp = /#(\w+)/g
@@ -18,18 +18,18 @@ export const CLOZE_ERROR = '42'
 export const NOTE_TYPE_ERROR = '69'
 
 export function hasClozes(text: string): boolean {
-	/*Checks whether text actually has cloze deletions.*/
-	return ANKI_CLOZE_REGEXP.test(text)
+    /*Checks whether text actually has cloze deletions.*/
+    return ANKI_CLOZE_REGEXP.test(text)
 }
 
-export function noteHasClozes(note: AnkiConnectNote): boolean {
-	/*Checks whether a note has cloze deletions in any of its fields.*/
-	for (let i in note.fields) {
-		if (hasClozes(note.fields[i])) {
-			return true
-		}
-	}
-	return false
+export function mochiCardHasClozes(mochiCard: MochiCard): boolean {
+    /*Checks whether a note has cloze deletions in any of its fields.*/
+    for (let id in mochiCard.fieldById) {
+        if (hasClozes(mochiCard.fieldById[id].value)) {
+            return true
+        }
+    }
+    return false
 }
 
 export class BaseCard extends AbstractCard {
@@ -39,7 +39,7 @@ export class BaseCard extends AbstractCard {
     }
 
     getIdentifier(): number | null {
-        if (this.ID_REGEXP.test(this.contentLines[this.contentLines.length-1])) {
+        if (this.ID_REGEXP.test(this.contentLines[this.contentLines.length - 1])) {
             return parseInt(this.ID_REGEXP.exec(this.contentLines.pop())[1])
         } else {
             return null
@@ -47,14 +47,14 @@ export class BaseCard extends AbstractCard {
     }
 
     getTags(): string[] {
-        if (this.contentLines[this.contentLines.length-1].startsWith(TAG_PREFIX)) {
+        if (this.contentLines[this.contentLines.length - 1].startsWith(TAG_PREFIX)) {
             return this.contentLines.pop().slice(TAG_PREFIX.length).split(TAG_SEP)
         } else {
             return []
         }
     }
 
-    getNoteType(): string {
+    getCardTemplateName(): string {
         return this.contentLines[0]
     }
 
@@ -67,7 +67,7 @@ export class BaseCard extends AbstractCard {
                 return [line.slice((field + ":").length), field]
             }
         }
-        return [line,this.currentField]
+        return [line, this.currentField]
     }
 
     getFields(): Record<string, string> {
@@ -82,8 +82,8 @@ export class BaseCard extends AbstractCard {
         for (let key in fields) {
             fields[key] = this.formatter.format(
                 fields[key].trim(),
-                this.cardType.includes("Cloze") && this.curly_cloze,
-				this.highlights_to_cloze
+                this.cardTemplateName.includes("Cloze") && this.curly_cloze,
+                this.highlights_to_cloze
             ).trim()
         }
         return fields

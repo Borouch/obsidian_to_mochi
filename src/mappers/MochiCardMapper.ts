@@ -33,7 +33,7 @@ export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCar
             content: dto.content,
             name: "", // Name field is not available in MochiCardDTO, defaulting to empty string
             deckId: dto["deck-id"],
-            fields: dto.fields,
+            fieldById: dto.fields,
             clozeIndexes: [], // clozeIndexes field is not available in MochiCardDTO, defaulting to empty array
             pos: dto.pos,
             references: [], // references field is not available in MochiCardDTO, defaulting to empty array
@@ -52,7 +52,7 @@ export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCar
             "deck-id": model.deckId,
             "template-id": model.templateId,
             pos: model.pos,
-            fields: model.fields,
+            fields: model.fieldById,
             id: model.id,
             reviews: model.reviews,
             "created-at": {

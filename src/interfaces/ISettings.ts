@@ -34,8 +34,8 @@ export interface CardsFileSettingsData {
 	//All the data that a file would need.
 	fields_dict: FIELDS_DICT
 	custom_regexps: Record<string, string>
-	file_link_fields: Record<string, string>
-	context_fields: Record<string, string>
+	fileLinkFieldsByCardTemplateName: Record<string, string>
+	contextFieldByCardTemplateName: Record<string, string>
 	template: AnkiConnectNote
 	EXISTING_MOCHI_CARD_IDS: string[]
 	vault_name: string
@@ -50,7 +50,7 @@ export interface CardsFileSettingsData {
 	curly_cloze: boolean
 	highlights_to_cloze: boolean
 	comment: boolean
-	add_context: boolean
+	addContextBreadcrumb: boolean
 	add_obs_tags: boolean
 }
 

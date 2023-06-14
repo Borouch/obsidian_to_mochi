@@ -11,8 +11,8 @@ export async function settingToData(app: App, settings: PluginSettings, fields_d
     result.vault_name = app.vault.getName()
     result.fields_dict = fields_dict
     result.custom_regexps = settings.CUSTOM_REGEXPS
-    result.file_link_fields = settings.FILE_LINK_FIELDS
-    result.context_fields = settings.CONTEXT_FIELDS
+    result.fileLinkFieldsByCardTemplateName = settings.FILE_LINK_FIELDS
+    result.contextFieldByCardTemplateName = settings.CONTEXT_FIELDS
     result.folder_decks = settings.FOLDER_DECKS
     result.folder_tags = settings.FOLDER_TAGS
     result.template = {
@@ -41,7 +41,7 @@ export async function settingToData(app: App, settings: PluginSettings, fields_d
     result.highlights_to_cloze = settings.Defaults["CurlyCloze - Highlights to Clozes"]
     result.add_file_link = settings.Defaults["Add File Link"]
     result.comment = settings.Defaults["ID Comments"]
-    result.add_context = settings.Defaults["Add Context"]
+    result.addContextBreadcrumb = settings.Defaults["Add Context"]
     result.add_obs_tags = settings.Defaults["Add Obsidian Tags"]
 
     return result

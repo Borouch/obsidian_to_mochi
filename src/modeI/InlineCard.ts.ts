@@ -31,7 +31,7 @@ export class InlineCard extends AbstractCard {
         }
     }
 
-    getNoteType(): string {
+    getCardTemplateName(): string {
         const result = this.text.match(InlineCard.TYPE_REGEXP)
         this.text = this.text.slice(result.index + result[0].length)
         return result[1]
@@ -54,7 +54,7 @@ export class InlineCard extends AbstractCard {
         for (let key in fields) {
             fields[key] = this.formatter.format(
                 fields[key].trim(),
-                this.cardType.includes("Cloze") && this.curly_cloze,
+                this.cardTemplateName.includes("Cloze") && this.curly_cloze,
                 this.highlights_to_cloze
             ).trim()
         }

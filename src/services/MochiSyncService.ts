@@ -2,7 +2,7 @@ import {FileManager} from "@src/FilesManager";
 import {MochiCardController} from "@src/controllers/MochiCardController";
 import {MochiDeckController} from "@src/controllers/MochiDeckController";
 import {MochiDeck} from "@src/models/MochiDeck";
-import {MochiCard} from "@src/models/MochiCard";
+import {MochiCard, MochiCardField} from "@src/models/MochiCard";
 import {debug} from "@src/utils/Logger";
 import {MochiCardService} from "@src/services/MochiCardService";
 import {MochiTemplate} from "@src/models/MochiTemplate";
@@ -47,8 +47,14 @@ export class MochiSyncService {
     }
 
 
-    public static getGeneratedContentFromFields(fields: Record<string, string>) {
-        return `${fields['Front']}\n---\n${fields['Back']}`
+    public static makeContentFromMochiFields(fields: Record<string, MochiCardField>) {
+        let content = ''
+        let i = 0;
+        for (const id in fields) {
+            content += i === 0 ? `${fields[id].value}` : `\n---\n${fields[id].value}`
+            i++;
+        }
+        return content
     }
 
 
