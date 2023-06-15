@@ -1,7 +1,7 @@
 import {basename, extname} from "path";
 import {Converter} from "showdown";
 import {CachedMetadata} from "obsidian";
-import * as c from "./Constants";
+import * as c from "../Constants";
 
 import showdownHighlight from "showdown-highlight";
 import {MochiCard} from "@src/models/MochiCard";
@@ -9,6 +9,7 @@ import {findMochiTemplateFieldIdByName} from "@src/models/MochiTemplate";
 import {AbstractCard} from "@src/models/AbstractCard";
 import {RegexCard} from "@src/models/RegexCard";
 import {generateRandomId} from "@src/Helpers";
+import {FileManager} from "@src/FilesManager";
 
 const ANKI_MATH_REGEXP: RegExp = /(\\\[[\s\S]*?\\\])|(\\\([\s\S]*?\\\))/g;
 const HIGHLIGHT_REGEXP: RegExp = /==(.*?)==/g;
@@ -97,7 +98,7 @@ export class FormatConverter {
         frozen_fields_dict: Record<string, Record<string, string>>
     ): void {
         for (let fieldId in mochiCard.fieldById) {
-            const fieldName = mochiCard.template.fields[fieldId].name
+            const fieldName = mochiCard.template.fields[fieldId].name;
             mochiCard.fieldById[fieldId].value +=
                 frozen_fields_dict[mochiCard.template.name][fieldName];
         }
@@ -108,9 +109,13 @@ export class FormatConverter {
         context: string,
         contextFieldNameByCardTemplateName: Record<string, string>
     ) {
-        const contextFieldName = contextFieldNameByCardTemplateName[mochiCard.template.name]
-        const fieldId = findMochiTemplateFieldIdByName(contextFieldName, mochiCard.template)
-        mochiCard.fieldById[fieldId].value += context
+        const contextFieldName =
+            contextFieldNameByCardTemplateName[mochiCard.template.name];
+        const fieldId = findMochiTemplateFieldIdByName(
+            contextFieldName,
+            mochiCard.template
+        );
+        mochiCard.fieldById[fieldId].value += context;
     }
 
     obsidian_to_anki_math(cardText: string): string {
@@ -137,17 +142,26 @@ export class FormatConverter {
         return text;
     }
 
-    getAndFormatAttachments(card: AbstractCard | RegexCard,
-                            note_text: string): string {
+    getAndFormatAttachments(
+        card: AbstractCard | RegexCard,
+        note_text: string
+    ): string {
         if (!this.file_cache.hasOwnProperty("embeds")) {
             return note_text;
         }
+
+
         for (let embed of this.file_cache.embeds) {
             if (note_text.includes(embed.original)) {
-                const ext = extname(embed.link)
-                const baseName = basename(embed.link)
-                const id = `${generateRandomId(16)}${ext}`
-                card.mochiAttachmentLinksById[embed.link]=id
+                const ext = extname(embed.link);
+                const baseName = basename(embed.link);
+
+                const id =
+                    FileManager.instance.getPersistedOrPendingAttachmentLinkId(embed.link) ??
+                    `${generateRandomId(16)}${ext}`;
+
+                FileManager.instance.addAttachmentLinkByIdRecordToPending(embed.link, id)
+                card.mochiAttachmentLinksById[embed.link] = id;
                 if (AUDIO_EXTS.includes(ext) || IMAGE_EXTS.includes(ext)) {
                     note_text = note_text.replace(
                         new RegExp(c.escapeRegex(embed.original), "g"),
@@ -208,7 +222,6 @@ export class FormatConverter {
         cloze: boolean,
         highlights_to_cloze: boolean
     ): string {
-
         if (cloze) {
             if (highlights_to_cloze) {
                 note_text = note_text.replace(HIGHLIGHT_REGEXP, "{$1}");
@@ -216,7 +229,7 @@ export class FormatConverter {
             note_text = this.curly_to_cloze(note_text);
         }
 
-        note_text = this.getAndFormatAttachments(card,note_text);
+        note_text = this.getAndFormatAttachments(card, note_text);
         note_text = this.formatLinks(note_text);
 
         // Remove unnecessary paragraph tag

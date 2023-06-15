@@ -34,6 +34,7 @@ export class MochiSyncService {
             const cardsFile = manager.cardsFiles[i]
             const tFile = manager.tFiles[i]
             cardsFile.writeIDs()
+            //TODO: clean added media if deleted
             cardsFile.performDelete()
             if (cardsFile.contents !== cardsFile.originalContents) {
                 await manager.app.vault.modify(tFile, cardsFile.contents)
@@ -41,8 +42,6 @@ export class MochiSyncService {
         }
 
     }
-
-
 
 
     public static makeContentFromMochiFields(fields: Record<string, MochiCardField>) {

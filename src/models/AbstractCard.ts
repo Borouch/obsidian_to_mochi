@@ -1,4 +1,4 @@
-import {FormatConverter} from "@src/format";
+import {FormatConverter} from "@src/utils/FormatConverter";
 import {FIELDS_DICT, FROZEN_FIELDS_DICT} from "@src/interfaces/IField";
 import {CardsFileSettingsData} from "@src/interfaces/ISettings";
 import {NOTE_TYPE_ERROR, OBS_TAG_REGEXP} from "@src/models/BaseCard";

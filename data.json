@@ -38,10 +38,12 @@
       "Add Obsidian Tags": false
     }
   },
-  "Added Media": [],
+  "Added Media": {
+    "111aa3.png": "zdIZRSdhApXg6jrk.png"
+  },
   "File Hashes": {
     "templater/SR token.md": "2af7c4ac3686c7b7373b9984dbcc3775",
-    "SR.md": "1d7bbc04834d4f61435984d32ae58777",
+    "SR.md": "555c9becc83c4a66d6d8079ced8a473e",
     "Spaced repetition dashboard.md": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "fields_dict": {

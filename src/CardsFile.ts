@@ -4,7 +4,7 @@ import {FROZEN_FIELDS_DICT} from './interfaces/IField'
 import {BaseCard, CLOZE_ERROR, ID_REGEXP_STR, NOTE_TYPE_ERROR, TAG_REGEXP_STR, TAG_SEP} from './models/BaseCard'
 import {Md5} from 'ts-md5/dist/md5';
 import * as c from './Constants'
-import {FormatConverter} from './format'
+import {FormatConverter} from './utils/FormatConverter'
 import {CachedMetadata, HeadingCache} from 'obsidian'
 import {CardsFileSettingsData} from "@src/interfaces/ISettings";
 import {RegexCard} from "@src/models/RegexCard";
