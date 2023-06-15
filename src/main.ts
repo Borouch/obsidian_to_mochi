@@ -10,12 +10,11 @@ import {MochiSyncService} from "@src/services/MochiSyncService";
 import {MochiCardService} from "@src/services/MochiCardService";
 import {MochiTemplateService} from "@src/services/MochiTemplateService";
 import {ModelNotFoundError} from "@src/exceptions/ModelNotFoundError";
-import {FLASH_CARD_ICON} from "@src/Icons";
 import {ANKI_ICON} from "@src/Constants";
+import {generateBasicAuthToken} from "@src/Helpers";
 
 axios.defaults.baseURL = 'https://app.mochi.cards/api';
 axios.defaults.headers.common['Accept'] = 'application/json'
-axios.defaults.headers.common['Authorization'] = 'Basic MjI0ZmRmYzkyYTg3NGExMDY5ZjUzZmFmOg=='
 
 export default class ObsidianToMochiPlugin extends Plugin {
 
@@ -28,6 +27,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
     async getDefaultSettings(): Promise<PluginSettings> {
         let settings: PluginSettings = {
+            API_TOKEN: '',
             CUSTOM_REGEXPS: {},
             FILE_LINK_FIELDS: {},
             CONTEXT_FIELDS: {},
@@ -169,12 +169,16 @@ export default class ObsidianToMochiPlugin extends Plugin {
     }
 
     async scanVault() {
+        if (!this.settings.API_TOKEN) {
+            new Notice('Provide Mochi API key in order to start sync...');
+
+            return
+        }
         new Notice('Scanning vault, check console for details...');
 
         MochiSyncService.mochiCards = await MochiCardService.indexCards()
         const data: ParsedSettingsData = await settingToData(this.app, this.settings, this.fieldNamesByTemplateName)
         const manager = new FileManager(this.app, data, this.app.vault.getMarkdownFiles(), this.fileHashes, this.addedMedia)
-        debug({before_file_changes_detect_manager: manager})
         await manager.detectFilesChanges()
         debug({after_file_changes_detect_manager: manager})
 
@@ -193,16 +197,20 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
     async onload() {
         console.log('loading Obsidian_to_Mochi...');
-        await MochiTemplateService.index()
+
         addIcon('flash_card_icon', ANKI_ICON)
 
         try {
             this.settings = await this.loadSettings()
+            debug({API_TOKEN: this.settings.API_TOKEN})
+            const basicAuthToken = generateBasicAuthToken(this.settings.API_TOKEN)
+            axios.defaults.headers.common['Authorization'] = `Basic ${basicAuthToken}`;
+
         } catch (e) {
             new Notice("Couldn't connect to Mochi! Check console for error message.")
             return
         }
-
+        await MochiTemplateService.index()
         this.mochiTemplateNames = Object.keys(this.settings["CUSTOM_REGEXPS"])
         this.fieldNamesByTemplateName = await this.loadFieldsDict()
         if (Object.keys(this.fieldNamesByTemplateName).length == 0) {

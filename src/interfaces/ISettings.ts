@@ -2,6 +2,7 @@ import {FIELDS_DICT} from "@src/interfaces/IField";
 import {AnkiConnectNote} from "@src/interfaces/IAnkiConnectNote";
 
 export interface PluginSettings {
+	API_TOKEN:string
 	CUSTOM_REGEXPS: Record<string, string>,
 	FILE_LINK_FIELDS: Record<string, string>,
 	CONTEXT_FIELDS: Record<string, string>,

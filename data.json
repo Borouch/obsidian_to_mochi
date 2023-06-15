@@ -41,7 +41,8 @@
       "CurlyCloze - Highlights to Clozes": false,
       "ID Comments": true,
       "Add Obsidian Tags": false
-    }
+    },
+    "API_TOKEN": "224fdfc92a874a1069f53faf"
   },
   "Added Media": [],
   "File Hashes": {
