@@ -1,10 +1,8 @@
 /*Performing plugin operations on markdown file contents*/
 
 import {FROZEN_FIELDS_DICT} from './interfaces/IField'
-import {AnkiConnectNote, AnkiConnectNoteAndID} from './interfaces/IAnkiConnectNote'
 import {BaseCard, CLOZE_ERROR, ID_REGEXP_STR, NOTE_TYPE_ERROR, TAG_REGEXP_STR, TAG_SEP} from './models/BaseCard'
 import {Md5} from 'ts-md5/dist/md5';
-import * as AnkiConnect from './anki'
 import * as c from './Constants'
 import {FormatConverter} from './format'
 import {CachedMetadata, HeadingCache} from 'obsidian'
@@ -197,60 +195,6 @@ abstract class AbstractCardsFile {
 
     performDelete() {
         this.contents = this.contents.replace(this.data.DELETE_REGEXP, "")
-    }
-
-    getAddNotes(): AnkiConnect.AnkiConnectRequest {
-        let actions: AnkiConnect.AnkiConnectRequest[] = []
-        for (let note of this.allTypeMochiCardsToAdd) {
-            actions.push(AnkiConnect.addNote(note))
-        }
-        return AnkiConnect.multi(actions)
-    }
-
-    getDeleteNotes(): AnkiConnect.AnkiConnectRequest {
-        return AnkiConnect.deleteNotes(this.mochiCardIdsToDelete)
-    }
-
-    getUpdateFields(): AnkiConnect.AnkiConnectRequest {
-        let actions: AnkiConnect.AnkiConnectRequest[] = []
-        for (let parsed of this.mochiCardsToEdit) {
-            actions.push(
-                AnkiConnect.updateNoteFields(
-                    parsed.identifier, parsed.ankiNote.fields
-                )
-            )
-        }
-        return AnkiConnect.multi(actions)
-    }
-
-    getNoteInfo(): AnkiConnect.AnkiConnectRequest {
-        let IDs: number[] = []
-        for (let parsed of this.mochiCardsToEdit) {
-            IDs.push(parsed.identifier)
-        }
-        return AnkiConnect.notesInfo(IDs)
-    }
-
-    getChangeDecks(): AnkiConnect.AnkiConnectRequest {
-        return AnkiConnect.changeDeck(this.cardIds, this.targetDeckName)
-    }
-
-    getClearTags(): AnkiConnect.AnkiConnectRequest {
-        let IDs: number[] = []
-        for (let parsed of this.mochiCardsToEdit) {
-            IDs.push(parsed.identifier)
-        }
-        return AnkiConnect.removeTags(IDs, this.ankiTags.join(" "))
-    }
-
-    getAddTags(): AnkiConnect.AnkiConnectRequest {
-        let actions: AnkiConnect.AnkiConnectRequest[] = []
-        for (let parsed of this.mochiCardsToEdit) {
-            actions.push(
-                AnkiConnect.addTags([parsed.identifier], parsed.ankiNote.tags.join(" ") + " " + this.globalTags)
-            )
-        }
-        return AnkiConnect.multi(actions)
     }
 
 }

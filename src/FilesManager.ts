@@ -21,44 +21,7 @@ import * as mime from "mime-types";
 import { debug } from "@src/utils/Logger";
 import { generateRandomId } from "@src/Helpers";
 
-interface addNoteResponse {
-  result: number;
-  error: string | null;
-}
 
-interface notesInfoResponse {
-  result: Array<{
-    noteId: number;
-    modelName: string;
-    tags: string[];
-    fields: Record<
-      string,
-      {
-        order: number;
-        value: string;
-      }
-    >;
-    cards: number[];
-  }>;
-  error: string | null;
-}
-
-interface Requests1Result {
-  0: {
-    error: string | null;
-    result: Array<{
-      result: addNoteResponse[];
-      error: string | null;
-    }>;
-  };
-  1: {
-    error: string | null;
-    result: notesInfoResponse[];
-  };
-  2: any;
-  3: any;
-  4: any;
-}
 
 function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
   let _difference = new Set(setA);
@@ -216,68 +179,7 @@ export class FileManager {
     this.tFiles = changedTFiles;
   }
 
-  async requests_1() {
-    let requests: AnkiConnect.AnkiConnectRequest[] = [];
-    let temp: AnkiConnect.AnkiConnectRequest[] = [];
-    console.info("Requesting addition of notes into Anki...");
-    for (let file of this.cardsFiles) {
-      temp.push(file.getAddNotes());
-    }
-    requests.push(AnkiConnect.multi(temp));
-    temp = [];
-    console.info("Requesting card IDs of notes to be edited...");
-    for (let file of this.cardsFiles) {
-      temp.push(file.getNoteInfo());
-    }
-    requests.push(AnkiConnect.multi(temp));
-    temp = [];
-    console.info("Requesting tag list...");
-    requests.push(AnkiConnect.getTags());
-    console.info("Requesting update of fields of existing notes");
-    for (let file of this.cardsFiles) {
-      temp.push(file.getUpdateFields());
-    }
-    requests.push(AnkiConnect.multi(temp));
-    temp = [];
-    console.info("Requesting deletion of notes..");
-    for (let file of this.cardsFiles) {
-      temp.push(file.getDeleteNotes());
-    }
-    requests.push(AnkiConnect.multi(temp));
-    temp = [];
-    console.info("Requesting addition of media...");
-    for (let file of this.cardsFiles) {
-      const mediaLinks = difference(
-        file.formatter.detectedMedia,
-        this.addedAttachmentLinkByGeneratedId
-      );
-      for (let mediaLink of mediaLinks) {
-        console.log("Adding media file: ", mediaLink);
-        const dataFile = this.app.metadataCache.getFirstLinkpathDest(
-          mediaLink,
-          file.path
-        );
-        if (!dataFile) {
-          console.warn("Couldn't locate media file ", mediaLink);
-        } else {
-          // Located successfully, so treat as if we've added the media
-          this.addedAttachmentLinkByGeneratedId.add(mediaLink);
-          const realPath = (
-            this.app.vault.adapter as FileSystemAdapter
-          ).getFullPath(dataFile.path);
-          temp.push(
-            AnkiConnect.storeMediaFileByPath(basename(mediaLink), realPath)
-          );
-        }
-      }
-    }
-    requests.push(AnkiConnect.multi(temp));
-    temp = [];
-    this.requests_1_result = await AnkiConnect.invoke("multi", {
-      actions: requests,
-    });
-    await this.parse_requests_1();
-  }
+
 
   async createAttachmentsForMochiCards() {
     for (let cardsFile of this.cardsFiles) {
@@ -318,78 +220,6 @@ export class FileManager {
     }
   }
 
-  async parse_requests_1() {
-    const response = this.requests_1_result as Requests1Result;
-    if (response[5].result.length >= 1 && response[5].result[0].error != null) {
-      new Notice(
-        "Please update AnkiConnect! The way the script has added media files has changed."
-      );
-      console.warn(
-        "Please update AnkiConnect! The way the script has added media files has changed."
-      );
-    }
-    let note_ids_array_by_file: Requests1Result[0]["result"];
-    try {
-      note_ids_array_by_file = AnkiConnect.parse(response[0]);
-    } catch (error) {
-      console.error("Error: ", error);
-      note_ids_array_by_file = response[0].result;
-    }
-    const note_info_array_by_file = AnkiConnect.parse(response[1]);
-    const ankiTags: string[] = AnkiConnect.parse(response[2]);
-    for (let index in note_ids_array_by_file) {
-      let i: number = parseInt(index);
-      let file = this.cardsFiles[i];
-      let file_response: addNoteResponse[];
-      try {
-        file_response = AnkiConnect.parse(note_ids_array_by_file[i]);
-      } catch (error) {
-        console.error("Error: ", error);
-        file_response = note_ids_array_by_file[i].result;
-      }
-      file.mochiCardIds = [];
-      for (let index in file_response) {
-        let i = parseInt(index);
-        let response = file_response[i];
-        try {
-          file.mochiCardIds.push(AnkiConnect.parse(response));
-        } catch (error) {
-          console.warn(
-            "Failed to add note ",
-            file.allTypeMochiCardsToAdd[i],
-            " in file",
-            file.path,
-            " due to error ",
-            error
-          );
-          file.mochiCardIds.push(response.result);
-        }
-      }
-    }
-    for (let index in note_info_array_by_file) {
-      let i: number = parseInt(index);
-      let file = this.cardsFiles[i];
-      const file_response = AnkiConnect.parse(note_info_array_by_file[i]);
-      let temp: number[] = [];
-      for (let note_response of file_response) {
-        temp.push(...note_response.cards);
-      }
-      file.cardIds = temp;
-    }
-    for (let index in this.cardsFiles) {
-      let i: number = parseInt(index);
-      let cardsFile = this.cardsFiles[i];
-      let tFile = this.tFiles[i];
-      cardsFile.ankiTags = ankiTags;
-      cardsFile.writeIDs();
-      cardsFile.performDelete();
-      if (cardsFile.contents !== cardsFile.originalContents) {
-        await this.app.vault.modify(tFile, cardsFile.contents);
-      }
-    }
-    await this.requests_2();
-  }
-
   getHashes(): Record<string, string> {
     let result: Record<string, string> = {};
     for (let file of this.cardsFiles) {
@@ -398,27 +228,4 @@ export class FileManager {
     return result;
   }
 
-  async requests_2(): Promise<void> {
-    let requests: AnkiConnect.AnkiConnectRequest[] = [];
-    let temp: AnkiConnect.AnkiConnectRequest[] = [];
-    console.info("Requesting cards to be moved to target deck...");
-    for (let file of this.cardsFiles) {
-      temp.push(file.getChangeDecks());
-    }
-    requests.push(AnkiConnect.multi(temp));
-    temp = [];
-    console.info("Requesting tags to be replaced...");
-    for (let file of this.cardsFiles) {
-      temp.push(file.getClearTags());
-    }
-    requests.push(AnkiConnect.multi(temp));
-    temp = [];
-    for (let file of this.cardsFiles) {
-      temp.push(file.getAddTags());
-    }
-    requests.push(AnkiConnect.multi(temp));
-    temp = [];
-    await AnkiConnect.invoke("multi", { actions: requests });
-    console.info("All done!");
-  }
 }
