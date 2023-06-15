@@ -180,13 +180,14 @@ export default class ObsidianToMochiPlugin extends Plugin {
         const data: ParsedSettingsData = await settingToData(this.app, this.settings, this.fieldNamesByTemplateName)
         const manager = new FileManager(this.app, data, this.app.vault.getMarkdownFiles(), this.fileHashes, this.addedMedia)
         await manager.detectFilesChanges()
+        await manager.createAttachmentsForMochiCards()
         debug({after_file_changes_detect_manager: manager})
 
         await MochiSyncService.syncFileManagerWithRemote(manager)
         await MochiSyncService.syncChangesToCardsFiles(manager)
 
         // await manager.requests_1()
-        this.addedMedia = Array.from(manager.added_media_set)
+        this.addedMedia = Array.from(manager.addedAttachmentsLinksSet)
         const hashes = manager.getHashes()
         for (let key in hashes) {
             this.fileHashes[key] = hashes[key]

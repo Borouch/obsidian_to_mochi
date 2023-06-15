@@ -1,26 +1,11 @@
 {
   "settings": {
-    "CUSTOM_REGEXPS": {
-      "Basic (type in the answer)": "",
-      "Basic": "((?:[^\\n][\\n]?)+\\n)---((?:\\n(?:^.{1,3}$|^.{4}(?<!<!--).*))*)",
-      "DRAW": "",
-      "Cloze (overlapping)": "",
-      "Basic (and reversed card)": ""
-    },
-    "FILE_LINK_FIELDS": {
-      "Basic (type in the answer)": "Front",
-      "Basic": "Front",
-      "DRAW": "DRAW",
-      "Cloze (overlapping)": "Text15",
-      "Basic (and reversed card)": "Front"
-    },
+    "API_TOKEN": "",
+    "CUSTOM_REGEXPS": {},
+    "FILE_LINK_FIELDS": {},
     "CONTEXT_FIELDS": {},
-    "FOLDER_DECKS": {
-      "templater": ""
-    },
-    "FOLDER_TAGS": {
-      "templater": ""
-    },
+    "FOLDER_DECKS": {},
+    "FOLDER_TAGS": {},
     "Syntax": {
       "Begin Note": "START",
       "End Note": "END",
@@ -41,60 +26,9 @@
       "CurlyCloze - Highlights to Clozes": false,
       "ID Comments": true,
       "Add Obsidian Tags": false
-    },
-    "API_TOKEN": "224fdfc92a874a1069f53faf"
+    }
   },
   "Added Media": [],
-  "File Hashes": {
-    "templater/SR token.md": "2af7c4ac3686c7b7373b9984dbcc3775",
-    "SR.md": "00664fc88a1f5f3c55255dba56346d6b",
-    "SR 2.md": "d41d8cd98f00b204e9800998ecf8427e",
-    "Spaced repetition dashboard.md": "d41d8cd98f00b204e9800998ecf8427e"
-  },
-  "fields_dict": {
-    "Basic (type in the answer)": [
-      "Front",
-      "Back"
-    ],
-    "Basic": [
-      "Front",
-      "Back"
-    ],
-    "DRAW": [
-      "DRAW",
-      "Q"
-    ],
-    "Cloze (overlapping)": [
-      "Text15",
-      "Text13",
-      "Sources",
-      "Settings",
-      "Title",
-      "Text1",
-      "Text18",
-      "Text5",
-      "Text10",
-      "Original",
-      "Text14",
-      "Remarks",
-      "Text9",
-      "Text16",
-      "Text2",
-      "Text8",
-      "Text6",
-      "Text19",
-      "Text20",
-      "Text17",
-      "Text3",
-      "Text7",
-      "Text11",
-      "Text4",
-      "Text12",
-      "Full"
-    ],
-    "Basic (and reversed card)": [
-      "Front",
-      "Back"
-    ]
-  }
+  "File Hashes": {},
+  "fields_dict": {}
 }

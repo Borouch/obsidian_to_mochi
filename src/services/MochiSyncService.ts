@@ -42,9 +42,7 @@ export class MochiSyncService {
 
     }
 
-    public static async syncMediaChanges() {
 
-    }
 
 
     public static makeContentFromMochiFields(fields: Record<string, MochiCardField>) {

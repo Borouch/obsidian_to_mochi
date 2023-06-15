@@ -1,9 +1,20 @@
 /*Class for managing a list of files, and their Anki requests.*/
 import {CardsFileSettingsData, ParsedSettingsData} from './interfaces/ISettings'
-import {App, CachedMetadata, FileSystemAdapter, Notice, TAbstractFile, TFile, TFolder} from 'obsidian'
+import {
+    App,
+    arrayBufferToBase64,
+    CachedMetadata,
+    FileSystemAdapter,
+    Notice,
+    TAbstractFile,
+    TFile,
+    TFolder
+} from 'obsidian'
 import {CardsFile} from './CardsFile'
 import * as AnkiConnect from './anki'
 import {basename} from 'path'
+import {MochiAttachment} from "@src/models/MochiAttachment";
+import * as mime from 'mime-types';
 
 interface addNoteResponse {
     result: number,
@@ -50,6 +61,15 @@ function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
     return _difference
 }
 
+function leftExclusiveSetElements<T>(set1: Set<T>, set2: Set<T>): Set<T> {
+    let resultSet = new Set<T>();
+    for (let elem of set1) {
+        if (!set2.has(elem)) {
+            resultSet.add(elem);
+        }
+    }
+    return resultSet;
+}
 
 export class FileManager {
     app: App
@@ -58,7 +78,7 @@ export class FileManager {
     cardsFiles: Array<CardsFile>
     tFileHashes: Record<string, string>
     requests_1_result: any
-    added_media_set: Set<string>
+    addedAttachmentsLinksSet: Set<string>
 
     constructor(app: App, data: ParsedSettingsData, tFiles: TFile[], file_hashes: Record<string, string>, added_media: string[]) {
         this.app = app
@@ -66,7 +86,7 @@ export class FileManager {
         this.tFiles = tFiles
         this.cardsFiles = []
         this.tFileHashes = file_hashes
-        this.added_media_set = new Set(added_media)
+        this.addedAttachmentsLinksSet = new Set(added_media)
     }
 
     getUrl(file: TFile): string {
@@ -191,7 +211,7 @@ export class FileManager {
         temp = []
         console.info("Requesting addition of media...")
         for (let file of this.cardsFiles) {
-            const mediaLinks = difference(file.formatter.detectedMedia, this.added_media_set)
+            const mediaLinks = difference(file.formatter.detectedMedia, this.addedAttachmentsLinksSet)
             for (let mediaLink of mediaLinks) {
                 console.log("Adding media file: ", mediaLink)
                 const dataFile = this.app.metadataCache.getFirstLinkpathDest(mediaLink, file.path)
@@ -199,7 +219,7 @@ export class FileManager {
                     console.warn("Couldn't locate media file ", mediaLink)
                 } else {
                     // Located successfully, so treat as if we've added the media
-                    this.added_media_set.add(mediaLink)
+                    this.addedAttachmentsLinksSet.add(mediaLink)
                     const realPath = (this.app.vault.adapter as FileSystemAdapter).getFullPath(dataFile.path)
                     temp.push(
                         AnkiConnect.storeMediaFileByPath(
@@ -216,24 +236,27 @@ export class FileManager {
         await this.parse_requests_1()
     }
 
-    createAttachments(){
-        for (let file of this.cardsFiles) {
-            const mediaLinks = difference(file.formatter.detectedMedia, this.added_media_set)
-            for (let mediaLink of mediaLinks) {
-                console.log("Adding media file: ", mediaLink)
-                const dataFile = this.app.metadataCache.getFirstLinkpathDest(mediaLink, file.path)
-                if (!(dataFile)) {
-                    console.warn("Couldn't locate media file ", mediaLink)
-                } else {
-                    // Located successfully, so treat as if we've added the media
-                    this.added_media_set.add(mediaLink)
-                    const realPath = (this.app.vault.adapter as FileSystemAdapter).getFullPath(dataFile.path)
-                    temp.push(
-                        AnkiConnect.storeMediaFileByPath(
-                            basename(mediaLink),
-                            realPath
-                        )
-                    )
+    async createAttachmentsForMochiCards() {
+        for (let cardsFile of this.cardsFiles) {
+            for (const mochiCard of [...cardsFile.mochiCardsToEdit, ...cardsFile.allTypeMochiCardsToAdd]) {
+                const attachmentLinksToAdd = leftExclusiveSetElements(mochiCard.tempProps.attachmentLinksSet, this.addedAttachmentsLinksSet)
+                for (const attachmentLink of attachmentLinksToAdd) {
+                    const dataFile: TFile = this.app.metadataCache.getFirstLinkpathDest(attachmentLink, cardsFile.path)
+                    if (!(dataFile)) {
+                        console.warn("Couldn't locate media file ", attachmentLink)
+                    } else {
+                        const binary = await this.app.vault.readBinary(dataFile)
+                        const base64 = arrayBufferToBase64(binary)
+                        const mimeType = mime.lookup(dataFile.extension)
+                        const attachment: MochiAttachment = {
+                            data: base64,
+                            fileName: `${dataFile.basename}.${dataFile.extension}`,
+                            contentType: mimeType
+                        }
+                        mochiCard.attachments.push(attachment)
+                        this.addedAttachmentsLinksSet.add(attachmentLink)
+                    }
+
                 }
             }
         }

@@ -146,7 +146,7 @@ export class FormatConverter {
                 const ext = extname(embed.link)
                 const baseName = basename(embed.link)
                 const embedName = `${baseName}.${ext}`
-                card.mochiAttachmentLinks.push(embed.link);
+                card.mochiAttachmentLinks.add(embed.link)
                 if (AUDIO_EXTS.includes(ext) || IMAGE_EXTS.includes(ext)) {
                     note_text = note_text.replace(
                         new RegExp(c.escapeRegex(embed.original), "g"),
