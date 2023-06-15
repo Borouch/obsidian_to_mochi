@@ -10,6 +10,7 @@ import {
   findMochiTemplateFromName,
   makeMochiCardFieldById
 } from "@src/models/MochiTemplate";
+import {MochiAttachment} from "@src/models/MochiAttachment";
 
 export abstract class AbstractCard {
   text: string;
@@ -26,7 +27,7 @@ export abstract class AbstractCard {
   curly_cloze: boolean;
   highlights_to_cloze: boolean;
   no_note_type: boolean;
-
+  mochiAttachmentLinks:string[]=[]
   constructor(
     cardContent: string,
     fieldsDict: FIELDS_DICT,

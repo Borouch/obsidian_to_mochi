@@ -6,6 +6,8 @@ import * as c from "./Constants";
 import showdownHighlight from "showdown-highlight";
 import {MochiCard} from "@src/models/MochiCard";
 import {findMochiTemplateFieldIdByName} from "@src/models/MochiTemplate";
+import {AbstractCard} from "@src/models/AbstractCard";
+import {RegexCard} from "@src/models/RegexCard";
 
 const ANKI_MATH_REGEXP: RegExp = /(\\\[[\s\S]*?\\\])|(\\\([\s\S]*?\\\))/g;
 const HIGHLIGHT_REGEXP: RegExp = /==(.*?)==/g;
@@ -134,26 +136,21 @@ export class FormatConverter {
         return text;
     }
 
-    getAndFormatMedias(note_text: string): string {
+    getAndFormatAttachments(card: AbstractCard | RegexCard,
+                            note_text: string): string {
         if (!this.file_cache.hasOwnProperty("embeds")) {
             return note_text;
         }
         for (let embed of this.file_cache.embeds) {
             if (note_text.includes(embed.original)) {
-                this.detectedMedia.add(embed.link);
-                if (AUDIO_EXTS.includes(extname(embed.link))) {
+                const ext = extname(embed.link)
+                const baseName = basename(embed.link)
+                const embedName = `${baseName}.${ext}`
+                card.mochiAttachmentLinks.push(embed.link);
+                if (AUDIO_EXTS.includes(ext) || IMAGE_EXTS.includes(ext)) {
                     note_text = note_text.replace(
                         new RegExp(c.escapeRegex(embed.original), "g"),
-                        "[sound:" + basename(embed.link) + "]"
-                    );
-                } else if (IMAGE_EXTS.includes(extname(embed.link))) {
-                    note_text = note_text.replace(
-                        new RegExp(c.escapeRegex(embed.original), "g"),
-                        '<img src="' +
-                        basename(embed.link) +
-                        '" alt="' +
-                        embed.displayText +
-                        '">'
+                        `![](@media/${embedName})`
                     );
                 } else {
                     console.warn("Unsupported extension: ", extname(embed.link));
@@ -205,6 +202,7 @@ export class FormatConverter {
     }
 
     format(
+        card: AbstractCard | RegexCard,
         note_text: string,
         cloze: boolean,
         highlights_to_cloze: boolean
@@ -217,7 +215,7 @@ export class FormatConverter {
             note_text = this.curly_to_cloze(note_text);
         }
 
-        note_text = this.getAndFormatMedias(note_text);
+        note_text = this.getAndFormatAttachments(card,note_text);
         note_text = this.formatLinks(note_text);
 
         // Remove unnecessary paragraph tag

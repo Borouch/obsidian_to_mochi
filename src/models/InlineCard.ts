@@ -52,7 +52,7 @@ export class InlineCard extends AbstractCard {
             fields[this.currentField] += word + " "
         }
         for (let key in fields) {
-            fields[key] = this.formatter.format(
+            fields[key] = this.formatter.format(this,
                 fields[key].trim(),
                 this.cardTemplateName.includes("Cloze") && this.curly_cloze,
                 this.highlights_to_cloze

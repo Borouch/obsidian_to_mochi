@@ -21,7 +21,7 @@ export class RegexCard {
     curly_cloze: boolean;
     highlights_to_cloze: boolean;
     formatter: FormatConverter;
-
+    mochiAttachmentLinks:string[]=[]
     constructor(
         match: RegExpMatchArray,
         note_type: string,
@@ -57,7 +57,7 @@ export class RegexCard {
         }
         for (let key in fields) {
             fields[key] = this.formatter
-                .format(
+                .format(this,
                     fields[key].trim(),
                     this.cardTemplateName.includes("Cloze") && this.curly_cloze,
                     this.highlights_to_cloze
