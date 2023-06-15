@@ -21,7 +21,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
     settings: PluginSettings
     mochiTemplateNames: Array<string>
     fieldNamesByTemplateName: Record<string, string[]>
-    addedMedia: string[]
+    addedAttachmentLinkByGeneratedId:  Record<string, string>
     fileHashes: Record<string, string>
     scheduleId: any
 
@@ -85,7 +85,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
         this.saveData(
             {
                 settings: default_sets,
-                "Added Media": [],
+                "Added Media": {},
                 "File Hashes": {},
                 fields_dict: {}
             }
@@ -101,7 +101,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
             this.saveData(
                 {
                     settings: default_sets,
-                    "Added Media": [],
+                    "Added Media": {},
                     "File Hashes": {},
                     fields_dict: {}
                 }
@@ -113,11 +113,11 @@ export default class ObsidianToMochiPlugin extends Plugin {
         }
     }
 
-    async loadAddedMedia(): Promise<string[]> {
+    async loadAddedMedia(): Promise<Record<string, string>> {
         let currentData = await this.loadData()
         if (currentData == null) {
             await this.saveDefault()
-            return []
+            return {}
         } else {
             return currentData["Added Media"]
         }
@@ -147,7 +147,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
         this.saveData(
             {
                 settings: this.settings,
-                "Added Media": this.addedMedia,
+                "Added Media": this.addedAttachmentLinkByGeneratedId,
                 "File Hashes": this.fileHashes,
                 fields_dict: this.fieldNamesByTemplateName
             }
@@ -178,7 +178,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
         MochiSyncService.mochiCards = await MochiCardService.indexCards()
         const data: ParsedSettingsData = await settingToData(this.app, this.settings, this.fieldNamesByTemplateName)
-        const manager = new FileManager(this.app, data, this.app.vault.getMarkdownFiles(), this.fileHashes, this.addedMedia)
+        const manager = new FileManager(this.app, data, this.app.vault.getMarkdownFiles(), this.fileHashes, this.addedAttachmentLinkByGeneratedId)
         await manager.detectFilesChanges()
         await manager.createAttachmentsForMochiCards()
         debug({after_file_changes_detect_manager: manager})
@@ -187,7 +187,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
         await MochiSyncService.syncChangesToCardsFiles(manager)
 
         // await manager.requests_1()
-        this.addedMedia = Array.from(manager.addedAttachmentsLinksSet)
+        this.addedAttachmentLinkByGeneratedId = manager.addedAttachmentLinkByGeneratedId
         const hashes = manager.getHashes()
         for (let key in hashes) {
             this.fileHashes[key] = hashes[key]
@@ -224,7 +224,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
                 return
             }
         }
-        this.addedMedia = await this.loadAddedMedia()
+        this.addedAttachmentLinkByGeneratedId = await this.loadAddedMedia()
         this.fileHashes = await this.loadFileHashes()
 
         this.addSettingTab(new SettingsTab(this.app, this));

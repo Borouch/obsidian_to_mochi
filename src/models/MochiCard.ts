@@ -7,11 +7,11 @@ export interface MochiCardField {
 }
 export interface TempMochiParams {
     deckName?: string,
-    attachmentLinksSet?: Set<string>
+    attachmentLinkByGeneratedId?:Record<string,string>
 }
 
 export interface MochiCard {
-    tempProps?:TempMochiParams
+    runtimeProps?:TempMochiParams
     tags: string[];
     content: string;
     name?: string;

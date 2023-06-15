@@ -417,7 +417,7 @@ export class SettingsTab extends PluginSettingTab {
                     .setButtonText("Clear")
                     .setClass("mod-cta")
                     .onClick(async () => {
-                        plugin.addedMedia = [];
+                        plugin.addedAttachmentLinkByGeneratedId = {};
                         await plugin.saveAllData();
                         new Notice("Media Cache cleared successfully!");
                     });

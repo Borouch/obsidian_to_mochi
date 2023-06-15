@@ -13,7 +13,7 @@ export class MochiCardService {
         if (cards.length <= 0) return []
         const mochiCards: MochiCard[] = []
         for (const card of cards) {
-            const deck = await MochiDeckService.findOrCreateDeck(card.tempProps.deckName)
+            const deck = await MochiDeckService.findOrCreateDeck(card.runtimeProps.deckName)
             card.deckId = deck.id
             const dto: MochiCardDTO = MochiCardMapper.i.mapToDTO(card)
             const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto)
@@ -30,7 +30,7 @@ export class MochiCardService {
 
         const mochiCards: MochiCard[] = []
         for (const card of cards) {
-            const deck = await MochiDeckService.findOrCreateDeck(card.tempProps.deckName)
+            const deck = await MochiDeckService.findOrCreateDeck(card.runtimeProps.deckName)
             card.deckId = deck.id
             const dto: MochiCardDTO = MochiCardMapper.i.mapToDTO(card)
             const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto, card.id)

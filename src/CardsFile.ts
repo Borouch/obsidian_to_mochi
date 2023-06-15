@@ -87,12 +87,12 @@ abstract class AbstractCardsFile {
     targetDeckName: string
     globalTags: string
 
-    mochiCardsToAdd: MochiCard[]
-    mochiCardsToEdit: MochiCard[]
+    mochiCardsToAdd: MochiCard[]=[]
+    mochiCardsToEdit: MochiCard[]=[]
     mochiCardIdsToDelete: string[]
 
     idIndexes: number[]
-    allTypeMochiCardsToAdd: MochiCard[]
+    allTypeMochiCardsToAdd: MochiCard[]=[]
 
     mochiCardIds: Array<string | null> = []
     cardIds: number[]

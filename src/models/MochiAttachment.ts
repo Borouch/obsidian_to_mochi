@@ -13,3 +13,4 @@ export interface MochiAttachmentDTO{
     "content-type": string;
     data: string;
 }
+

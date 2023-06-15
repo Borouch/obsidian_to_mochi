@@ -8,6 +8,7 @@ import {MochiCard} from "@src/models/MochiCard";
 import {findMochiTemplateFieldIdByName} from "@src/models/MochiTemplate";
 import {AbstractCard} from "@src/models/AbstractCard";
 import {RegexCard} from "@src/models/RegexCard";
+import {generateRandomId} from "@src/Helpers";
 
 const ANKI_MATH_REGEXP: RegExp = /(\\\[[\s\S]*?\\\])|(\\\([\s\S]*?\\\))/g;
 const HIGHLIGHT_REGEXP: RegExp = /==(.*?)==/g;
@@ -145,12 +146,12 @@ export class FormatConverter {
             if (note_text.includes(embed.original)) {
                 const ext = extname(embed.link)
                 const baseName = basename(embed.link)
-                const embedName = `${baseName}.${ext}`
-                card.mochiAttachmentLinks.add(embed.link)
+                const id = `${generateRandomId(16)}${ext}`
+                card.mochiAttachmentLinksById[embed.link]=id
                 if (AUDIO_EXTS.includes(ext) || IMAGE_EXTS.includes(ext)) {
                     note_text = note_text.replace(
                         new RegExp(c.escapeRegex(embed.original), "g"),
-                        `![](@media/${embedName})`
+                        `![](@media/${id})`
                     );
                 } else {
                     console.warn("Unsupported extension: ", extname(embed.link));

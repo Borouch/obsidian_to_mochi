@@ -21,7 +21,7 @@ export class RegexCard {
     curly_cloze: boolean;
     highlights_to_cloze: boolean;
     formatter: FormatConverter;
-    mochiAttachmentLinks= new Set<string>();
+    mochiAttachmentLinksById:Record<string, string>={};
 
     constructor(
         match: RegExpMatchArray,
@@ -84,7 +84,7 @@ export class RegexCard {
         const mochiCard: MochiCard = {
             id: this.identifier,
             tags: this.tags,
-            tempProps: {deckName: deckName, attachmentLinksSet: this.mochiAttachmentLinks},
+            runtimeProps: {deckName: deckName, attachmentLinkByGeneratedId: this.mochiAttachmentLinksById},
             template: mochiTemplate,
             templateId: mochiTemplate.id,
             fieldById: mochiCardFieldById,

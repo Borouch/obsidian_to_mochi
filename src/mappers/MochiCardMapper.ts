@@ -1,6 +1,7 @@
 import {MochiAttachmentDTO} from "@src/models/MochiAttachment";
 import {Mapper} from "@src/interfaces/Mapper";
 import {MochiCard} from "@src/models/MochiCard";
+import {MochiAttachmentMapper} from "@src/mappers/MochiAttachmentMapper";
 
 export interface MochiCardField {
     id: string;
@@ -27,9 +28,7 @@ export interface MochiCardDTO {
 
 
 export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCardDTO> {
-    private static _i = new MochiCardMapper()
-    public static i = this._i
-
+    public static i = new MochiCardMapper()
     private constructor() {
     }
 
@@ -40,11 +39,12 @@ export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCar
             name: "", // Name field is not available in MochiCardDTO, defaulting to empty string
             deckId: dto["deck-id"],
             fieldById: dto.fields,
-            clozeIndexes: [], // clozeIndexes field is not available in MochiCardDTO, defaulting to empty array
+            clozeIndexes: [],
             pos: dto.pos,
-            references: [], // references field is not available in MochiCardDTO, defaulting to empty array
+            references: [],
             id: dto.id,
             reviews: dto.reviews,
+            attachments: [],
             createdAt: {
                 date: dto["created-at"].date
             },
@@ -59,8 +59,7 @@ export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCar
             "template-id": model.templateId,
             pos: model.pos,
             fields: model.fieldById,
-            attachments: [],// Attachments field is not available in MochiCard, defaulting to empty array
-            // fill in the boolean fields according to your business logic, defaulting to false
+            attachments: model.attachments ? model.attachments.map((m) => MochiAttachmentMapper.i.mapToDTO(m)) : [],
             "archived?": false,
             "review-reverse?": false
         };

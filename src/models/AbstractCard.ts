@@ -25,7 +25,7 @@ export abstract class AbstractCard {
     curly_cloze: boolean;
     highlights_to_cloze: boolean;
     no_note_type: boolean;
-    mochiAttachmentLinks = new Set<string>();
+    mochiAttachmentLinksById : Record<string, string>={}
 
     constructor(
         cardContent: string,
@@ -84,7 +84,7 @@ export abstract class AbstractCard {
         const mochiCard: MochiCard = {
             id: this.identifier,
             tags: this.tags,
-            tempProps: {deckName: deckName, attachmentLinksSet: this.mochiAttachmentLinks},
+            runtimeProps: {deckName: deckName, attachmentLinkByGeneratedId: this.mochiAttachmentLinksById},
             template: mochiTemplate,
             templateId: mochiTemplate.id,
             fieldById: mochiCardFieldById,
