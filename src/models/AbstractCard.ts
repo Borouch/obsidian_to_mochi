@@ -1,6 +1,6 @@
 import {FormatConverter} from "@src/utils/FormatConverter";
 import {FIELDS_DICT, FROZEN_FIELDS_DICT} from "@src/interfaces/IField";
-import {CardsFileSettingsData} from "@src/interfaces/ISettings";
+import {CardainerFileSettingsData} from "@src/interfaces/ISettings";
 import {CLOZE_ERROR, mochiCardHasClozes, NOTE_TYPE_ERROR, OBS_TAG_REGEXP} from "@src/models/BeginEndCard";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {MochiCard} from "@src/models/MochiCard";
@@ -68,7 +68,7 @@ export abstract class AbstractCard {
         deckName: string,
         url: string,
         frozenFieldByCardTemplateNameDict: FROZEN_FIELDS_DICT,
-        data: CardsFileSettingsData,
+        data: CardainerFileSettingsData,
         cardContextBreadcrumbText: string
     ): MochiCard | null {
 
@@ -123,7 +123,7 @@ export abstract class AbstractCard {
                 data.contextFieldByCardTemplateName
             );
         }
-        if (data.add_obs_tags) {
+        if (data.shouldAddObsTags) {
             for (let id in mochiCard.fieldById) {
                 for (let match of mochiCard.fieldById[id].value.matchAll(OBS_TAG_REGEXP)) {
                     this.tags.push(match[1]);

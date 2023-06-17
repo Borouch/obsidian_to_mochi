@@ -1,5 +1,5 @@
 /*Class for managing a list of files, and their Anki requests.*/
-import {CardsFileSettingsData, ParsedSettingsData,} from "./interfaces/ISettings";
+import {CardainerFileSettingsData} from "./interfaces/ISettings";
 import {App, arrayBufferToBase64, CachedMetadata, TAbstractFile, TFile, TFolder,} from "obsidian";
 import {CardainerFile} from "./CardainerFile";
 import {MochiAttachment} from "@src/models/MochiAttachment";
@@ -39,7 +39,7 @@ function leftExclusiveSetElements<T>(set1: Set<T>, set2: Set<T>): Set<T> {
 
 export class FileManager {
     app: App;
-    data: ParsedSettingsData;
+    data: CardainerFileSettingsData;
     tFiles: TFile[];
     cardsFiles: Array<CardainerFile>;
     tFileHashes: Record<string, string>;
@@ -49,7 +49,7 @@ export class FileManager {
 
     constructor(
         app: App,
-        data: ParsedSettingsData,
+        data: CardainerFileSettingsData,
         tFiles: TFile[],
         file_hashes: Record<string, string>,
         addedAttachmentLinkByGeneratedId: Record<string, string>
@@ -71,7 +71,7 @@ export class FileManager {
 
     public static createSingletonInstance(
         app: App,
-        data: ParsedSettingsData,
+        data: CardainerFileSettingsData,
         tFiles: TFile[],
         file_hashes: Record<string, string>,
         addedAttachmentLinkByGeneratedId: Record<string, string>
@@ -92,7 +92,7 @@ export class FileManager {
     getUrl(file: TFile): string {
         return (
             "obsidian://open?vault=" +
-            encodeURIComponent(this.data.vault_name) +
+            encodeURIComponent(this.data.vaultName) +
             String.raw`&file=` +
             encodeURIComponent(file.path)
         );
@@ -110,7 +110,7 @@ export class FileManager {
     }
 
     getDefaultDeck(file: TFile, folder_path_list: TFolder[]): string {
-        let folder_decks = this.data.folder_decks;
+        let folder_decks = this.data.folderDecks;
         for (let folder of folder_path_list) {
             // Loops over them from innermost folder
             if (folder_decks[folder.path]) {
@@ -122,7 +122,7 @@ export class FileManager {
     }
 
     getDefaultTags(file: TFile, folder_path_list: TFolder[]): string[] {
-        let folder_tags = this.data.folder_tags;
+        let folder_tags = this.data.folderTags;
         let tags_list: string[] = [];
         for (let folder of folder_path_list) {
             // Loops over them from innermost folder
@@ -134,9 +134,9 @@ export class FileManager {
         return tags_list;
     }
 
-    dataToCardsFileSettingsData(file: TFile): CardsFileSettingsData {
+    dataToCardsFileSettingsData(file: TFile): CardainerFileSettingsData {
         const folderPathList: TFolder[] = this.getFolderPathList(file);
-        let result: CardsFileSettingsData = JSON.parse(JSON.stringify(this.data));
+        let result: CardainerFileSettingsData = JSON.parse(JSON.stringify(this.data));
         //Lost regexp, so have to get them back
         result.FROZEN_REGEXP = this.data.FROZEN_REGEXP;
         result.DECK_REGEXP = this.data.DECK_REGEXP;
@@ -158,7 +158,7 @@ export class FileManager {
                 new CardainerFile(
                     content,
                     file.path,
-                    this.data.add_file_link ? this.getUrl(file) : "",
+                    this.data.addFileLink ? this.getUrl(file) : "",
                     file_data,
                     cache
                 )
@@ -249,7 +249,7 @@ export class FileManager {
             this.pendingAttachmentLinkByGeneratedId[attachmentLink]
     }
 
-    getHashes(): Record<string, string> {
+    getFileHashes(): Record<string, string> {
         let result: Record<string, string> = {};
         for (let file of this.cardsFiles) {
             result[file.path] = file.getHash();

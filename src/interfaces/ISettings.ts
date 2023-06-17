@@ -20,7 +20,7 @@ export interface PluginSettings {
     },
     Defaults: {
         "Tag": string,
-        "Deck": string,
+        "DeckName": string,
         "Scheduling Interval": number
         "Add File Link": boolean,
         "Add Context": boolean,
@@ -31,15 +31,15 @@ export interface PluginSettings {
     }
 }
 
-export interface CardsFileSettingsData {
+export interface CardainerFileSettingsData {
     //All the data that a file would need.
-    fields_dict: FIELDS_DICT
-    custom_regexps: Record<string, string>
+    fieldsDict: FIELDS_DICT
+    customRegexps: Record<string, string>
     fileLinkFieldsByCardTemplateName: Record<string, string>
     contextFieldByCardTemplateName: Record<string, string>
     template: AnkiConnectNote
-    EXISTING_MOCHI_CARD_IDS: string[]
-    vault_name: string
+    existingMochiCardIds: string[]
+    vaultName: string
 
     FROZEN_REGEXP: RegExp
     DECK_REGEXP: RegExp
@@ -48,18 +48,18 @@ export interface CardsFileSettingsData {
     INLINE_REGEXP: RegExp
     DELETE_REGEXP: RegExp
 
-    curly_cloze: boolean
-    highlights_to_cloze: boolean
+    isCurlyCloze: boolean
+    isHighlightsToCloze: boolean
     comment: boolean
     addContextBreadcrumb: boolean
-    add_obs_tags: boolean
+    shouldAddObsTags: boolean
+    addFileLink: boolean
+    folderDecks: Record<string, string>
+    folderTags: Record<string, string>
+    defaultTag: string
+    defaultDeckName:string
 }
 
-export interface ParsedSettingsData extends CardsFileSettingsData {
-    add_file_link: boolean
-    folder_decks: Record<string, string>
-    folder_tags: Record<string, string>
-}
 
 export interface CacheData {
     settings: PluginSettings,

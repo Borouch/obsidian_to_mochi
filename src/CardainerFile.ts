@@ -6,7 +6,7 @@ import {Md5} from 'ts-md5/dist/md5';
 import * as c from './Constants'
 import {FormatConverter} from './utils/FormatConverter'
 import {CachedMetadata, HeadingCache} from 'obsidian'
-import {CardsFileSettingsData} from "@src/interfaces/ISettings";
+import {CardainerFileSettingsData} from "@src/interfaces/ISettings";
 import {RegexCard} from "@src/models/RegexCard";
 import {debug} from "@src/utils/Logger";
 import {ArrayUtil} from "@src/utils/ArrayUtil";
@@ -56,7 +56,7 @@ function spans(pattern: RegExp, text: string): Array<[number, number]> {
     return output
 }
 
-function contained_in(span: [number, number], spans: Array<[number, number]>): boolean {
+function containedInSpan(span: [number, number], spans: Array<[number, number]>): boolean {
     /*Return whether span is contained in spans (+- 1 leeway)*/
     return spans.some(
         (element) => span[0] >= element[0] - 1 && span[1] <= element[1] + 1
@@ -67,7 +67,7 @@ function* findMatchNotIgnored(pattern: RegExp, text: string, ignore_spans: Array
     let matches = text.matchAll(pattern)
     for (let match of matches) {
         const matchSpan: [number, number] = [match.index, match.index + match[0].length]
-        if (!(contained_in(matchSpan, ignore_spans))) {
+        if (!(containedInSpan(matchSpan, ignore_spans))) {
             yield match
         }
     }
@@ -78,7 +78,7 @@ abstract class AbstractCardainerFile {
     path: string
     url: string
     originalContents: string
-    data: CardsFileSettingsData
+    data: CardainerFileSettingsData
     tFileCache: CachedMetadata
 
     frozenFieldDict: FROZEN_FIELDS_DICT
@@ -98,20 +98,20 @@ abstract class AbstractCardainerFile {
 
     formatter: FormatConverter
 
-    constructor(file_contents: string, path: string, url: string, data: CardsFileSettingsData, file_cache: CachedMetadata) {
+    constructor(file_contents: string, path: string, url: string, data: CardainerFileSettingsData, file_cache: CachedMetadata) {
         this.data = data
         this.contents = file_contents
         this.path = path
         this.url = url
         this.originalContents = this.contents
         this.tFileCache = file_cache
-        this.formatter = new FormatConverter(file_cache, this.data.vault_name)
+        this.formatter = new FormatConverter(file_cache, this.data.vaultName)
     }
 
     setup_frozen_fields_dict() {
         let frozen_fields_dict: FROZEN_FIELDS_DICT = {}
-        for (let note_type in this.data.fields_dict) {
-            let fields: string[] = this.data.fields_dict[note_type]
+        for (let note_type in this.data.fieldsDict) {
+            let fields: string[] = this.data.fieldsDict[note_type]
             let temp_dict: Record<string, string> = {}
             for (let field of fields) {
                 temp_dict[field] = ""
@@ -123,9 +123,9 @@ abstract class AbstractCardainerFile {
             const virtual_note = note_type + "\n" + fields
             const parsed_fields: Record<string, string> = new BeginEndCard(
                 virtual_note,
-                this.data.fields_dict,
-                this.data.curly_cloze,
-                this.data.highlights_to_cloze,
+                this.data.fieldsDict,
+                this.data.isCurlyCloze,
+                this.data.isHighlightsToCloze,
                 this.formatter
             ).getCardFieldContentByFieldNameDict()
             frozen_fields_dict[note_type] = parsed_fields
@@ -207,9 +207,9 @@ export class CardainerFile extends AbstractCardainerFile {
     regexCardsToAdd: MochiCard[]
     regexIdIndexes: number[]
 
-    constructor(file_contents: string, path: string, url: string, data: CardsFileSettingsData, file_cache: CachedMetadata) {
+    constructor(file_contents: string, path: string, url: string, data: CardainerFileSettingsData, file_cache: CachedMetadata) {
         super(file_contents, path, url, data, file_cache)
-        this.custom_note_type_regexps = data.custom_regexps
+        this.custom_note_type_regexps = data.customRegexps
     }
 
     add_spans_to_ignore() {
@@ -253,9 +253,9 @@ export class CardainerFile extends AbstractCardainerFile {
             let [cardContent, position]: [string, number] = [card_match[1], card_match.index + card_match[0].indexOf(card_match[1]) + card_match[1].length]
             let mochiCard: MochiCard|null = new BeginEndCard(
                 cardContent,
-                this.data.fields_dict,
-                this.data.curly_cloze,
-                this.data.highlights_to_cloze,
+                this.data.fieldsDict,
+                this.data.isCurlyCloze,
+                this.data.isHighlightsToCloze,
                 this.formatter
             ).parseToMochiCard(
                 this.targetDeckName,
@@ -272,7 +272,7 @@ export class CardainerFile extends AbstractCardainerFile {
                 mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
                 this.mochiCardsToAdd.push(mochiCard)
                 this.idIndexes.push(position)
-            } else if (!this.data.EXISTING_MOCHI_CARD_IDS.includes(mochiCard.id)) {
+            } else if (!this.data.existingMochiCardIds.includes(mochiCard.id)) {
                 if (mochiCard.id == CLOZE_ERROR) {
                     continue
                 }
@@ -294,9 +294,9 @@ export class CardainerFile extends AbstractCardainerFile {
             // That second thing essentially gets the index of the end of the first capture group.
             let mochiCard:MochiCard|null = new InlineCard(
                 note,
-                this.data.fields_dict,
-                this.data.curly_cloze,
-                this.data.highlights_to_cloze,
+                this.data.fieldsDict,
+                this.data.isCurlyCloze,
+                this.data.isHighlightsToCloze,
                 this.formatter
             ).parseToMochiCard(
                 this.targetDeckName,
@@ -313,7 +313,7 @@ export class CardainerFile extends AbstractCardainerFile {
                 mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
                 this.inlineCardsToAdd.push(mochiCard)
                 this.inlineIdIndexes.push(position)
-            } else if (!this.data.EXISTING_MOCHI_CARD_IDS.includes(mochiCard.id)) {
+            } else if (!this.data.existingMochiCardIds.includes(mochiCard.id)) {
                 // Need to show an error
                 if (mochiCard.id == CLOZE_ERROR) {
                     continue
@@ -339,8 +339,8 @@ export class CardainerFile extends AbstractCardainerFile {
                 for (let match of findMatchNotIgnored(regexp, this.contents, this.ignore_spans)) {
                     this.ignore_spans.push([match.index, match.index + match[0].length])
                     const mochiCard: MochiCard | null = new RegexCard(
-                        match, cardTemplateName, this.data.fields_dict,
-                        search_tags, search_id, this.data.curly_cloze, this.data.highlights_to_cloze, this.formatter
+                        match, cardTemplateName, this.data.fieldsDict,
+                        search_tags, search_id, this.data.isCurlyCloze, this.data.isHighlightsToCloze, this.formatter
                     ).parseToMochiCard(
                         this.targetDeckName,
                         this.url,
@@ -352,7 +352,7 @@ export class CardainerFile extends AbstractCardainerFile {
                         break;
                     }
                     if (search_id) {
-                        if (!(this.data.EXISTING_MOCHI_CARD_IDS.includes(mochiCard.id))) {
+                        if (!(this.data.existingMochiCardIds.includes(mochiCard.id))) {
                             if (mochiCard.id == CLOZE_ERROR) {
                                 // This means it wasn't actually a card! So we should remove it from ignore_spans
                                 this.ignore_spans.pop()

@@ -1,6 +1,6 @@
 import {FormatConverter} from "@src/utils/FormatConverter";
 import {FIELDS_DICT, FROZEN_FIELDS_DICT} from "@src/interfaces/IField";
-import {CardsFileSettingsData} from "@src/interfaces/ISettings";
+import {CardainerFileSettingsData} from "@src/interfaces/ISettings";
 import {CLOZE_ERROR, mochiCardHasClozes, TAG_PREFIX, TAG_SEP,} from "@src/models/BeginEndCard";
 import {debug} from "@src/utils/Logger";
 import {MochiCard} from "@src/models/MochiCard";

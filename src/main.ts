@@ -3,9 +3,9 @@ import {SettingsTab} from "./Settings";
 import {debug} from "@src/utils/Logger";
 
 import axios from "axios";
-import {settingToData} from "@src/SettingToData";
+import {pluginSettingsToCardainerFileSettings} from "@src/PluginSettingsToCardainerFileSettings";
 import {FileManager} from "@src/FilesManager";
-import {CacheData, ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
+import {CacheData, CardainerFileSettingsData, PluginSettings} from "@src/interfaces/ISettings";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {MochiCardService} from "@src/services/MochiCardService";
 import {MochiTemplateService} from "@src/services/MochiTemplateService";
@@ -44,7 +44,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
             },
             Defaults: {
                 Tag: "obsidian-to-mochi",
-                Deck: "Default",
+                DeckName: "Default",
                 "Scheduling Interval": 0,
                 "Add File Link": false,
                 "Add Context": false,
@@ -182,7 +182,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
         new Notice("Scanning vault, check console for details...");
 
         MochiSyncService.mochiCards = await MochiCardService.indexCards();
-        const data: ParsedSettingsData = await settingToData(
+        const data: CardainerFileSettingsData = await pluginSettingsToCardainerFileSettings(
             this.app,
             this.settings,
             this.fieldNamesByTemplateName
@@ -204,7 +204,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
         // await manager.requests_1()
         this.addedAttachmentLinkByGeneratedId =
             manager.persistedAttachmentLinkByGeneratedId;
-        const hashes = manager.getHashes();
+        const hashes = manager.getFileHashes();
         for (let key in hashes) {
             this.fileHashes[key] = hashes[key];
         }
