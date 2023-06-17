@@ -33,13 +33,13 @@ export default class ObsidianToMochiPlugin extends Plugin {
             FOLDER_DECKS: {},
             FOLDER_TAGS: {},
             Syntax: {
-                "Begin Note": "START",
-                "End Note": "END",
-                "Begin Inline Note": "STARTI",
-                "End Inline Note": "ENDI",
+                "Begin Card": "START",
+                "End Card": "END",
+                "Begin Inline Card": "STARTI",
+                "End Inline Card": "ENDI",
                 "Target Deck Line": "TARGET DECK",
                 "File Tags Line": "FILE TAGS",
-                "Delete Note Line": "DELETE",
+                "Delete Card Line": "DELETE",
                 "Frozen Fields Line": "FROZEN",
             },
             Defaults: {

@@ -32,11 +32,8 @@ export function mochiCardHasClozes(mochiCard: MochiCard): boolean {
     return false
 }
 
-export class BaseCard extends AbstractCard {
+export class BeginEndCard extends AbstractCard {
 
-    getContentLines(): string[] {
-        return this.text.split("\n")
-    }
 
     getIdentifier(): string | null {
         if (this.ID_REGEXP.test(this.contentLines[this.contentLines.length - 1])) {
@@ -62,7 +59,7 @@ export class BaseCard extends AbstractCard {
         /*From a given line, determine the next field to add text into.
 
         Then, return the stripped line, and the field.*/
-        for (let field of this.field_names) {
+        for (let field of this.fieldNames) {
             if (line.startsWith(field + ":")) {
                 return [line.slice((field + ":").length), field]
             }
@@ -72,7 +69,7 @@ export class BaseCard extends AbstractCard {
 
     getCardFieldContentByFieldNameDict(): Record<string, string> {
         let fields: Record<string, string> = {}
-        for (let field of this.field_names) {
+        for (let field of this.fieldNames) {
             fields[field] = ""
         }
         for (let line of this.contentLines.slice(1)) {
@@ -82,8 +79,8 @@ export class BaseCard extends AbstractCard {
         for (let key in fields) {
             fields[key] = this.formatter.format(this,
                 fields[key].trim(),
-                this.cardTemplateName.includes("Cloze") && this.curly_cloze,
-                this.highlights_to_cloze
+                this.cardTemplateName.includes("Cloze") && this.curlyCloze,
+                this.highlightsToCloze
             ).trim()
         }
         return fields

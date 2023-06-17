@@ -1,7 +1,7 @@
 import {FormatConverter} from "@src/utils/FormatConverter";
 import {FIELDS_DICT, FROZEN_FIELDS_DICT} from "@src/interfaces/IField";
 import {CardsFileSettingsData} from "@src/interfaces/ISettings";
-import {CLOZE_ERROR, mochiCardHasClozes, TAG_PREFIX, TAG_SEP,} from "@src/models/BaseCard";
+import {CLOZE_ERROR, mochiCardHasClozes, TAG_PREFIX, TAG_SEP,} from "@src/models/BeginEndCard";
 import {debug} from "@src/utils/Logger";
 import {MochiCard} from "@src/models/MochiCard";
 import {MochiSyncService} from "@src/services/MochiSyncService";
@@ -10,40 +10,46 @@ import {
     findMochiTemplateFromName,
     makeMochiCardFieldById,
 } from "@src/models/MochiTemplate";
+import {AbstractCard} from "@src/models/AbstractCard";
 
-export class RegexCard {
+export class RegexCard extends AbstractCard{
+
+    getIdentifier(): string {
+        return this.identifier
+    }
+    getTags(): string[] {
+        return this.tags
+    }
+    getCardTemplateName(): string {
+        return this.cardTemplateName
+    }
+
     match: RegExpMatchArray;
-    cardTemplateName: string;
     groups: Array<string>;
-    identifier: string | null;
-    tags: string[];
-    fieldNames: string[];
-    curly_cloze: boolean;
-    highlights_to_cloze: boolean;
-    formatter: FormatConverter;
-    mochiAttachmentLinksById:Record<string, string>={};
 
     constructor(
         match: RegExpMatchArray,
-        note_type: string,
-        fields_dict: FIELDS_DICT,
+        cardTemplateName: string,
+        fieldsDict: FIELDS_DICT,
         tags: boolean,
         id: boolean,
-        curly_cloze: boolean,
-        highlights_to_cloze: boolean,
+        curlyCloze: boolean,
+        highlightsToCloze: boolean,
         formatter: FormatConverter
     ) {
+
+        super(match[0],fieldsDict,curlyCloze,highlightsToCloze,formatter)
         debug({regex_card_match: match});
         this.match = match;
-        this.cardTemplateName = note_type;
+        this.cardTemplateName = cardTemplateName;
         this.identifier = id ? this.match.pop() : null;
         this.tags = tags
             ? this.match.pop().slice(TAG_PREFIX.length).split(TAG_SEP)
             : [];
-        this.fieldNames = fields_dict[note_type];
-        this.curly_cloze = curly_cloze;
+        this.fieldNames = fieldsDict[cardTemplateName];
+        this.curlyCloze = curlyCloze;
         this.formatter = formatter;
-        this.highlights_to_cloze = highlights_to_cloze;
+        this.highlightsToCloze = highlightsToCloze;
     }
 
     getCardFieldContentByFieldNameDict(): Record<string, string> {
@@ -60,79 +66,12 @@ export class RegexCard {
             fields[key] = this.formatter
                 .format(this,
                     fields[key].trim(),
-                    this.cardTemplateName.includes("Cloze") && this.curly_cloze,
-                    this.highlights_to_cloze
+                    this.cardTemplateName.includes("Cloze") && this.curlyCloze,
+                    this.highlightsToCloze
                 )
                 .trim();
         }
         return fields;
     }
 
-    parseToMochiCard(
-        deckName: string,
-        url: string = "",
-        frozenFieldByCardTemplateNameDict: FROZEN_FIELDS_DICT,
-        data: CardsFileSettingsData,
-        cardContextBreadcrumbText: string
-    ): MochiCard {
-        const mochiTemplate = findMochiTemplateFromName(this.cardTemplateName);
-        const mochiCardFieldById = makeMochiCardFieldById(
-            this.getCardFieldContentByFieldNameDict(),
-            mochiTemplate
-        );
-
-        const mochiCard: MochiCard = {
-            id: this.identifier,
-            tags: this.tags,
-            runtimeProps: {deckName: deckName, attachmentLinkByGeneratedId: this.mochiAttachmentLinksById},
-            template: mochiTemplate,
-            templateId: mochiTemplate.id,
-            fieldById: mochiCardFieldById,
-            deckId: null,
-            content: "",
-        };
-
-        if (url) {
-            const fileLinkFieldsByCardTemplateNameDict =
-                data.fileLinkFieldsByCardTemplateName;
-            const fileLinkFieldName =
-                fileLinkFieldsByCardTemplateNameDict[this.cardTemplateName];
-            const fileLinkFieldId = findMochiTemplateFieldIdByName(
-                fileLinkFieldName,
-                mochiTemplate
-            );
-            this.formatter.appendFileSourceLinkToMochiCardField(
-                mochiCard,
-                url,
-                fileLinkFieldId
-            );
-        }
-
-        if (Object.keys(frozenFieldByCardTemplateNameDict).length) {
-            this.formatter.appendFrozenFieldToMochiCardField(
-                mochiCard,
-                frozenFieldByCardTemplateNameDict
-            );
-        }
-
-        if (cardContextBreadcrumbText) {
-            this.formatter.appendContextFieldToMochiCardField(
-                mochiCard,
-                cardContextBreadcrumbText,
-                data.contextFieldByCardTemplateName
-            );
-        }
-
-        if (
-            this.cardTemplateName.includes("Cloze") &&
-            !mochiCardHasClozes(mochiCard)
-        ) {
-            this.identifier = CLOZE_ERROR; //An error code that says "don't add this note!"
-        }
-        mochiCard.content = MochiSyncService.makeContentFromMochiFields(
-            mochiCard.fieldById
-        );
-
-        return mochiCard;
-    }
 }

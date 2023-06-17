@@ -1,5 +1,5 @@
 import {AbstractCard} from "@src/models/AbstractCard";
-import {TAG_SEP} from "@src/models/BaseCard";
+import {TAG_SEP} from "@src/models/BeginEndCard";
 
 export class InlineCard extends AbstractCard {
 
@@ -7,14 +7,12 @@ export class InlineCard extends AbstractCard {
     static ID_REGEXP: RegExp = /(?:<!--)?ID: (\d+)/;
     static TYPE_REGEXP: RegExp = /\[(.*?)\]/;
 
-    getContentLines(): string[] {
-        return this.text.split(" ")
-    }
+
 
     getIdentifier(): string | null {
-        const result = this.text.match(InlineCard.ID_REGEXP)
+        const result = this.content.match(InlineCard.ID_REGEXP)
         if (result) {
-            this.text = this.text.slice(0, result.index).trim()
+            this.content = this.content.slice(0, result.index).trim()
             return result[1]
         } else {
             return null
@@ -22,9 +20,9 @@ export class InlineCard extends AbstractCard {
     }
 
     getTags(): string[] {
-        const result = this.text.match(InlineCard.TAG_REGEXP)
+        const result = this.content.match(InlineCard.TAG_REGEXP)
         if (result) {
-            this.text = this.text.slice(0, result.index).trim()
+            this.content = this.content.slice(0, result.index).trim()
             return result[1].split(TAG_SEP)
         } else {
             return []
@@ -32,18 +30,18 @@ export class InlineCard extends AbstractCard {
     }
 
     getCardTemplateName(): string {
-        const result = this.text.match(InlineCard.TYPE_REGEXP)
-        this.text = this.text.slice(result.index + result[0].length)
+        const result = this.content.match(InlineCard.TYPE_REGEXP)
+        this.content = this.content.slice(result.index + result[0].length)
         return result[1]
     }
 
     getCardFieldContentByFieldNameDict(): Record<string, string> {
         let fields: Record<string, string> = {}
-        for (let field of this.field_names) {
+        for (let field of this.fieldNames) {
             fields[field] = ""
         }
-        for (let word of this.text.split(" ")) {
-            for (let field of this.field_names) {
+        for (let word of this.content.split(" ")) {
+            for (let field of this.fieldNames) {
                 if (word === field + ":") {
                     this.currentField = field
                     word = ""
@@ -54,8 +52,8 @@ export class InlineCard extends AbstractCard {
         for (let key in fields) {
             fields[key] = this.formatter.format(this,
                 fields[key].trim(),
-                this.cardTemplateName.includes("Cloze") && this.curly_cloze,
-                this.highlights_to_cloze
+                this.cardTemplateName.includes("Cloze") && this.curlyCloze,
+                this.highlightsToCloze
             ).trim()
         }
         return fields

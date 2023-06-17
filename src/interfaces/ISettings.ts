@@ -9,13 +9,13 @@ export interface PluginSettings {
 	FOLDER_DECKS: Record<string, string>,
 	FOLDER_TAGS: Record<string, string>,
 	Syntax: {
-		"Begin Note": string,
-		"End Note": string,
-		"Begin Inline Note": string,
-		"End Inline Note": string,
+		"Begin Card": string,
+		"End Card": string,
+		"Begin Inline Card": string,
+		"End Inline Card": string,
 		"Target Deck Line": string,
 		"File Tags Line": string,
-		"Delete Note Line": string,
+		"Delete Card Line": string,
 		"Frozen Fields Line": string
 	},
 	Defaults: {
@@ -44,7 +44,7 @@ export interface CardsFileSettingsData {
 	FROZEN_REGEXP: RegExp
 	DECK_REGEXP: RegExp
 	TAG_REGEXP: RegExp
-	CARD_REGEXP: RegExp
+	BEGIN_END_CARD: RegExp
 	INLINE_REGEXP: RegExp
 	DELETE_REGEXP: RegExp
 

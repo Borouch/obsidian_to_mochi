@@ -44,7 +44,10 @@ export function findMochiTemplateFromName(cardTemplateName: string) {
     const mochiTemplate = MochiSyncService.mochiTemplates.find(
         (t) => t.name === cardTemplateName
     );
-    if (cardTemplateName && !mochiTemplate)
-        throw new ModelNotFoundError("mochi template not found");
+    if (cardTemplateName && !mochiTemplate) {
+
+        console.warn({msg: "mochi template not found", cardTemplateName, templates: MochiSyncService.mochiTemplates})
+        return null
+    }
     return mochiTemplate
 }

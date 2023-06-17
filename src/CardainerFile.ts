@@ -1,7 +1,7 @@
 /*Performing plugin operations on markdown file contents*/
 
 import {FROZEN_FIELDS_DICT} from './interfaces/IField'
-import {BaseCard, CLOZE_ERROR, ID_REGEXP_STR, NOTE_TYPE_ERROR, TAG_REGEXP_STR, TAG_SEP} from './models/BaseCard'
+import {BeginEndCard, CLOZE_ERROR, ID_REGEXP_STR, NOTE_TYPE_ERROR, TAG_REGEXP_STR, TAG_SEP} from './models/BeginEndCard'
 import {Md5} from 'ts-md5/dist/md5';
 import * as c from './Constants'
 import {FormatConverter} from './utils/FormatConverter'
@@ -73,7 +73,7 @@ function* findMatchNotIgnored(pattern: RegExp, text: string, ignore_spans: Array
     }
 }
 
-abstract class AbstractCardsFile {
+abstract class AbstractCardainerFile {
     contents: string
     path: string
     url: string
@@ -85,12 +85,12 @@ abstract class AbstractCardsFile {
     targetDeckName: string
     globalTags: string
 
-    mochiCardsToAdd: MochiCard[]=[]
-    mochiCardsToEdit: MochiCard[]=[]
+    mochiCardsToAdd: MochiCard[] = []
+    mochiCardsToEdit: MochiCard[] = []
     mochiCardIdsToDelete: string[]
 
     idIndexes: number[]
-    allTypeMochiCardsToAdd: MochiCard[]=[]
+    allTypeMochiCardsToAdd: MochiCard[] = []
 
     mochiCardIds: Array<string | null> = []
     cardIds: number[]
@@ -121,7 +121,7 @@ abstract class AbstractCardsFile {
         for (let match of this.contents.matchAll(this.data.FROZEN_REGEXP)) {
             const [note_type, fields]: [string, string] = [match[1], match[2]]
             const virtual_note = note_type + "\n" + fields
-            const parsed_fields: Record<string, string> = new BaseCard(
+            const parsed_fields: Record<string, string> = new BeginEndCard(
                 virtual_note,
                 this.data.fields_dict,
                 this.data.curly_cloze,
@@ -199,7 +199,7 @@ abstract class AbstractCardsFile {
 
 }
 
-export class CardsFile extends AbstractCardsFile {
+export class CardainerFile extends AbstractCardainerFile {
     ignore_spans: [number, number][]
     custom_note_type_regexps: Record<string, string>
     inlineCardsToAdd: MochiCard[]
@@ -223,7 +223,7 @@ export class CardsFile extends AbstractCardsFile {
         if (tag_result) {
             this.ignore_spans.push([tag_result.index, tag_result.index + tag_result[0].length])
         }
-        this.ignore_spans.push(...spans(this.data.CARD_REGEXP, this.contents))
+        this.ignore_spans.push(...spans(this.data.BEGIN_END_CARD, this.contents))
         this.ignore_spans.push(...spans(this.data.INLINE_REGEXP, this.contents))
         this.ignore_spans.push(...spans(c.OBS_INLINE_MATH_REGEXP, this.contents))
         this.ignore_spans.push(...spans(c.OBS_DISPLAY_MATH_REGEXP, this.contents))
@@ -246,15 +246,12 @@ export class CardsFile extends AbstractCardsFile {
         this.mochiCardIdsToDelete = []
     }
 
-    /*
-    * 1. Parses file content to AnkiConnectNoteAndId
-    * 2. Determines if it needs to be added or edited to anki notes
-    * */
-    scanCards() {
-        for (let card_match of this.contents.matchAll(this.data.CARD_REGEXP)) {
+
+    scanBeginEndCards() {
+        for (let card_match of this.contents.matchAll(this.data.BEGIN_END_CARD)) {
             // That second thing essentially gets the index of the end of the first capture group.
             let [cardContent, position]: [string, number] = [card_match[1], card_match.index + card_match[0].indexOf(card_match[1]) + card_match[1].length]
-            let mochiCard: MochiCard = new BaseCard(
+            let mochiCard: MochiCard|null = new BeginEndCard(
                 cardContent,
                 this.data.fields_dict,
                 this.data.curly_cloze,
@@ -267,7 +264,9 @@ export class CardsFile extends AbstractCardsFile {
                 this.data,
                 this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(card_match.index) : ""
             )
-
+            if (!mochiCard) {
+                continue
+            }
             if (mochiCard.id == null) {
                 // Need to make sure global_tags get added
                 mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
@@ -293,7 +292,7 @@ export class CardsFile extends AbstractCardsFile {
         for (let note_match of this.contents.matchAll(this.data.INLINE_REGEXP)) {
             let [note, position]: [string, number] = [note_match[1], note_match.index + note_match[0].indexOf(note_match[1]) + note_match[1].length]
             // That second thing essentially gets the index of the end of the first capture group.
-            let mochiCard = new InlineCard(
+            let mochiCard:MochiCard|null = new InlineCard(
                 note,
                 this.data.fields_dict,
                 this.data.curly_cloze,
@@ -306,6 +305,9 @@ export class CardsFile extends AbstractCardsFile {
                 this.data,
                 this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(note_match.index) : ""
             )
+            if (!mochiCard) {
+                continue
+            }
             if (mochiCard.id == null) {
                 // Need to make sure global_tags get added
                 mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
@@ -323,7 +325,7 @@ export class CardsFile extends AbstractCardsFile {
         }
     }
 
-    searchContentRegexpMatch(note_type: string, regexp_str: string) {
+    searchContentRegexpMatchCards(cardTemplateName: string, regexp_str: string) {
         //Search the file for regex matches
         //ignoring matches inside ignore_spans,
         //and adding any matches to ignore_spans.
@@ -336,8 +338,8 @@ export class CardsFile extends AbstractCardsFile {
                 let regexp: RegExp = new RegExp(regexp_str + tag_str + id_str, 'gm')
                 for (let match of findMatchNotIgnored(regexp, this.contents, this.ignore_spans)) {
                     this.ignore_spans.push([match.index, match.index + match[0].length])
-                    const mochiCard: MochiCard = new RegexCard(
-                        match, note_type, this.data.fields_dict,
+                    const mochiCard: MochiCard | null = new RegexCard(
+                        match, cardTemplateName, this.data.fields_dict,
                         search_tags, search_id, this.data.curly_cloze, this.data.highlights_to_cloze, this.formatter
                     ).parseToMochiCard(
                         this.targetDeckName,
@@ -346,7 +348,9 @@ export class CardsFile extends AbstractCardsFile {
                         this.data,
                         this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(match.index) : ""
                     )
-
+                    if (!mochiCard) {
+                        break;
+                    }
                     if (search_id) {
                         if (!(this.data.EXISTING_MOCHI_CARD_IDS.includes(mochiCard.id))) {
                             if (mochiCard.id == CLOZE_ERROR) {
@@ -378,12 +382,12 @@ export class CardsFile extends AbstractCardsFile {
     * */
     scanFileForCardsCRUD() {
         this.setupScan()
-        this.scanCards()
+        this.scanBeginEndCards()
         this.scanInlineCards()
-        for (let note_type in this.custom_note_type_regexps) {
-            const regexp_str: string = this.custom_note_type_regexps[note_type]
+        for (let cardTemplateName in this.custom_note_type_regexps) {
+            const regexp_str: string = this.custom_note_type_regexps[cardTemplateName]
             if (regexp_str) {
-                this.searchContentRegexpMatch(note_type, regexp_str)
+                this.searchContentRegexpMatchCards(cardTemplateName, regexp_str)
             }
         }
         this.allTypeMochiCardsToAdd = this.mochiCardsToAdd.concat(this.inlineCardsToAdd).concat(this.regexCardsToAdd)

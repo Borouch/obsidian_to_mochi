@@ -1,5 +1,5 @@
 import {App} from 'obsidian'
-import {ID_REGEXP_STR} from './models/BaseCard'
+import {ID_REGEXP_STR} from './models/BeginEndCard'
 import {escapeRegex} from './Constants'
 import {ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
 import {MochiSyncService} from "@src/services/MochiSyncService";
@@ -32,9 +32,9 @@ export async function settingToData(app: App, settings: PluginSettings, fields_d
     result.FROZEN_REGEXP = new RegExp(escapeRegex(settings.Syntax["Frozen Fields Line"]) + String.raw` - (.*?):\n((?:[^\n][\n]?)+)`, "g")
     result.DECK_REGEXP = new RegExp(String.raw`^` + escapeRegex(settings.Syntax["Target Deck Line"]) + String.raw`(?:\n|: )(.*)`, "m")
     result.TAG_REGEXP = new RegExp(String.raw`^` + escapeRegex(settings.Syntax["File Tags Line"]) + String.raw`(?:\n|: )(.*)`, "m")
-    result.CARD_REGEXP = new RegExp(String.raw`^` + escapeRegex(settings.Syntax["Begin Note"]) + String.raw`\n([\s\S]*?\n)` + escapeRegex(settings.Syntax["End Note"]), "gm")
-    result.INLINE_REGEXP = new RegExp(escapeRegex(settings.Syntax["Begin Inline Note"]) + String.raw`(.*?)` + escapeRegex(settings.Syntax["End Inline Note"]), "g")
-    result.DELETE_REGEXP = new RegExp(escapeRegex(settings.Syntax["Delete Note Line"]) + ID_REGEXP_STR, "g")
+    result.BEGIN_END_CARD = new RegExp(String.raw`^` + escapeRegex(settings.Syntax["Begin Card"]) + String.raw`\n([\s\S]*?\n)` + escapeRegex(settings.Syntax["End Card"]), "gm")
+    result.INLINE_REGEXP = new RegExp(escapeRegex(settings.Syntax["Begin Inline Card"]) + String.raw`(.*?)` + escapeRegex(settings.Syntax["End Inline Card"]), "g")
+    result.DELETE_REGEXP = new RegExp(escapeRegex(settings.Syntax["Delete Card Line"]) + ID_REGEXP_STR, "g")
 
     //Just a simple transfer
     result.curly_cloze = settings.Defaults.CurlyCloze

@@ -1,7 +1,7 @@
 import {FormatConverter} from "@src/utils/FormatConverter";
 import {FIELDS_DICT, FROZEN_FIELDS_DICT} from "@src/interfaces/IField";
 import {CardsFileSettingsData} from "@src/interfaces/ISettings";
-import {NOTE_TYPE_ERROR, OBS_TAG_REGEXP} from "@src/models/BaseCard";
+import {CLOZE_ERROR, mochiCardHasClozes, NOTE_TYPE_ERROR, OBS_TAG_REGEXP} from "@src/models/BeginEndCard";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {MochiCard} from "@src/models/MochiCard";
 import {
@@ -11,20 +11,20 @@ import {
 } from "@src/models/MochiTemplate";
 
 export abstract class AbstractCard {
-    text: string;
+    content: string;
     contentLines: string[];
     current_field_num: number;
     delete: boolean;
     identifier: string | null;
     tags: string[];
     cardTemplateName: string;
-    field_names: string[];
+    fieldNames: string[];
     currentField: string;
     ID_REGEXP: RegExp = /(?:<!--)?ID: (\d+)/;
     formatter: FormatConverter;
-    curly_cloze: boolean;
-    highlights_to_cloze: boolean;
-    no_note_type: boolean;
+    curlyCloze: boolean;
+    highlightsToCloze: boolean;
+    noMochiTemplateType: boolean;
     mochiAttachmentLinksById : Record<string, string>={}
 
     constructor(
@@ -34,26 +34,25 @@ export abstract class AbstractCard {
         highlightsToCloze: boolean,
         formatter: FormatConverter
     ) {
-        this.text = cardContent.trim();
+        this.content = cardContent.trim();
         this.current_field_num = 0;
         this.delete = false;
-        this.no_note_type = false;
+        this.noMochiTemplateType = false;
         this.contentLines = this.getContentLines();
         this.identifier = this.getIdentifier();
         this.tags = this.getTags();
         this.cardTemplateName = this.getCardTemplateName();
         if (!fieldsDict.hasOwnProperty(this.cardTemplateName)) {
-            this.no_note_type = true;
+            this.noMochiTemplateType = true;
             return;
         }
-        this.field_names = fieldsDict[this.cardTemplateName];
-        this.currentField = this.field_names[0];
+        this.fieldNames = fieldsDict[this.cardTemplateName];
+        this.currentField = this.fieldNames[0];
         this.formatter = formatter;
-        this.curly_cloze = curlyCloze;
-        this.highlights_to_cloze = highlightsToCloze;
+        this.curlyCloze = curlyCloze;
+        this.highlightsToCloze = highlightsToCloze;
     }
 
-    abstract getContentLines(): string[];
 
     abstract getIdentifier(): string | null;
 
@@ -62,20 +61,23 @@ export abstract class AbstractCard {
     abstract getCardTemplateName(): string;
 
     abstract getCardFieldContentByFieldNameDict(): Record<string, string>;
-
+    getContentLines(): string[] {
+        return this.content.split(" ")
+    }
     parseToMochiCard(
         deckName: string,
         url: string,
         frozenFieldByCardTemplateNameDict: FROZEN_FIELDS_DICT,
         data: CardsFileSettingsData,
         cardContextBreadcrumbText: string
-    ): MochiCard {
+    ): MochiCard | null {
 
-        if (this.no_note_type) {
+        if (this.noMochiTemplateType) {
             this.identifier = NOTE_TYPE_ERROR
         }
 
         const mochiTemplate = findMochiTemplateFromName(this.cardTemplateName);
+        if(!mochiTemplate) return null
         const mochiCardFieldById = makeMochiCardFieldById(
             this.getCardFieldContentByFieldNameDict(),
             mochiTemplate
@@ -131,6 +133,13 @@ export abstract class AbstractCard {
                     ""
                 );
             }
+        }
+
+        if (
+            this.cardTemplateName.includes("Cloze") &&
+            !mochiCardHasClozes(mochiCard)
+        ) {
+            this.identifier = CLOZE_ERROR; //An error code that says "don't add this note!"
         }
 
         mochiCard.content = MochiSyncService.makeContentFromMochiFields(

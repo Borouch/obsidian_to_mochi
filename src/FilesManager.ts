@@ -1,7 +1,7 @@
 /*Class for managing a list of files, and their Anki requests.*/
 import {CardsFileSettingsData, ParsedSettingsData,} from "./interfaces/ISettings";
 import {App, arrayBufferToBase64, CachedMetadata, TAbstractFile, TFile, TFolder,} from "obsidian";
-import {CardsFile} from "./CardsFile";
+import {CardainerFile} from "./CardainerFile";
 import {MochiAttachment} from "@src/models/MochiAttachment";
 import * as mime from "mime-types";
 import {debug} from "@src/utils/Logger";
@@ -41,7 +41,7 @@ export class FileManager {
     app: App;
     data: ParsedSettingsData;
     tFiles: TFile[];
-    cardsFiles: Array<CardsFile>;
+    cardsFiles: Array<CardainerFile>;
     tFileHashes: Record<string, string>;
     requests_1_result: any;
     pendingAttachmentLinkByGeneratedId: Record<string, string> = {};
@@ -141,7 +141,7 @@ export class FileManager {
         result.FROZEN_REGEXP = this.data.FROZEN_REGEXP;
         result.DECK_REGEXP = this.data.DECK_REGEXP;
         result.TAG_REGEXP = this.data.TAG_REGEXP;
-        result.CARD_REGEXP = this.data.CARD_REGEXP;
+        result.BEGIN_END_CARD = this.data.BEGIN_END_CARD;
         result.INLINE_REGEXP = this.data.INLINE_REGEXP;
         result.DELETE_REGEXP = this.data.DELETE_REGEXP;
         result.template.deckName = this.getDefaultDeck(file, folderPathList);
@@ -155,7 +155,7 @@ export class FileManager {
             const cache: CachedMetadata = this.app.metadataCache.getCache(file.path);
             const file_data = this.dataToCardsFileSettingsData(file);
             this.cardsFiles.push(
-                new CardsFile(
+                new CardainerFile(
                     content,
                     file.path,
                     this.data.add_file_link ? this.getUrl(file) : "",
@@ -168,7 +168,7 @@ export class FileManager {
 
     async detectFilesChanges() {
         await this.genCardsFiles();
-        let changedCardFiles: Array<CardsFile> = [];
+        let changedCardFiles: Array<CardainerFile> = [];
         let changedTFiles: TFile[] = [];
         for (let index in this.cardsFiles) {
             const i = parseInt(index);
