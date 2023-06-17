@@ -5,7 +5,7 @@ import {debug} from "@src/utils/Logger";
 import axios from "axios";
 import {settingToData} from "@src/SettingToData";
 import {FileManager} from "@src/FilesManager";
-import {ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
+import {CacheData, ParsedSettingsData, PluginSettings} from "@src/interfaces/ISettings";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {MochiCardService} from "@src/services/MochiCardService";
 import {MochiTemplateService} from "@src/services/MochiTemplateService";
@@ -18,10 +18,10 @@ axios.defaults.headers.common["Accept"] = "application/json";
 
 export default class ObsidianToMochiPlugin extends Plugin {
     settings: PluginSettings;
-    mochiTemplateNames: Array<string>=[];
-    fieldNamesByTemplateName: Record<string, string[]>={};
-    addedAttachmentLinkByGeneratedId: Record<string, string>={};
-    fileHashes: Record<string, string>={};
+    mochiTemplateNames: Array<string> = [];
+    fieldNamesByTemplateName: Record<string, string[]> = {};
+    addedAttachmentLinkByGeneratedId: Record<string, string> = {};
+    fileHashes: Record<string, string> = {};
     scheduleId: any;
 
     async getDefaultSettings(): Promise<PluginSettings> {
@@ -43,7 +43,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
                 "Frozen Fields Line": "FROZEN",
             },
             Defaults: {
-                Tag: "Obsidian_to_Anki",
+                Tag: "obsidian-to-mochi",
                 Deck: "Default",
                 "Scheduling Interval": 0,
                 "Add File Link": false,
@@ -87,71 +87,73 @@ export default class ObsidianToMochiPlugin extends Plugin {
     }
 
     async saveDefault(): Promise<void> {
-        const default_sets = await this.getDefaultSettings();
-        this.saveData({
-            settings: default_sets,
-            "Added Media": {},
-            "File Hashes": {},
+        const defaultSettings = await this.getDefaultSettings();
+        const cacheData: CacheData = {
+            settings: defaultSettings,
+            persisted_attachments: {},
             fields_dict: {},
-        });
+            file_hashes: {}
+        }
+        await this.saveData(cacheData);
     }
 
     async loadSettings(): Promise<PluginSettings> {
-        let currentData = await this.loadData();
-        debug({currentData});
-        if (currentData == null || Object.keys(currentData).length != 4) {
+        let currCacheData: CacheData = await this.loadData();
+        debug({currCacheData: currCacheData});
+        if (currCacheData == null || Object.keys(currCacheData).length != 4) {
             new Notice("Need to connect to Mochi generate default settings...");
-            const default_sets = await this.getDefaultSettings();
-            this.saveData({
-                settings: default_sets,
-                "Added Media": {},
-                "File Hashes": {},
+            const defaultSettings = await this.getDefaultSettings();
+            const cacheData: CacheData = {
+                settings: defaultSettings,
+                persisted_attachments: {},
                 fields_dict: {},
-            });
+                file_hashes: {}
+            }
+            await this.saveData(cacheData);
             new Notice("Default settings successfully generated!");
-            return default_sets;
+            return defaultSettings;
         } else {
-            return currentData.settings;
+            return currCacheData.settings;
         }
     }
 
     async loadAddedMedia(): Promise<Record<string, string>> {
-        let currentData = await this.loadData();
-        if (currentData == null) {
+        const currCacheData: CacheData = await this.loadData();
+        if (currCacheData == null) {
             await this.saveDefault();
             return {};
         } else {
-            return currentData["Added Media"];
+            return currCacheData.persisted_attachments;
         }
     }
 
     async loadFileHashes(): Promise<Record<string, string>> {
-        let currentData = await this.loadData();
-        if (currentData == null) {
+        const currCacheData: CacheData = await this.loadData();
+        if (currCacheData == null) {
             await this.saveDefault();
             return {};
         } else {
-            return currentData["File Hashes"];
+            return currCacheData.file_hashes;
         }
     }
 
     async loadFieldsDict(): Promise<Record<string, string[]>> {
-        let currentData = await this.loadData();
-        if (currentData == null) {
+        const currCacheData: CacheData = await this.loadData();
+        if (currCacheData == null) {
             await this.saveDefault();
-            const fields_dict = await this.generateFieldNamesByTemplateName();
-            return fields_dict;
+            return await this.generateFieldNamesByTemplateName();
         }
-        return currentData.fields_dict;
+        return currCacheData.fields_dict;
     }
 
     async saveAllData(): Promise<void> {
-        this.saveData({
+        const currCacheData: CacheData = {
             settings: this.settings,
-            "Added Media": this.addedAttachmentLinkByGeneratedId,
-            "File Hashes": this.fileHashes,
             fields_dict: this.fieldNamesByTemplateName,
-        });
+            file_hashes: this.fileHashes,
+            persisted_attachments: this.addedAttachmentLinkByGeneratedId
+        }
+        await this.saveData(currCacheData);
     }
 
     regenerateSettingsRegexps() {
@@ -266,7 +268,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
     async onunload() {
         console.log("Saving settings for Obsidian_to_mochi...");
-        this.saveAllData();
+        await this.saveAllData();
         console.log("unloading Obsidian_to_mochi...");
     }
 }
