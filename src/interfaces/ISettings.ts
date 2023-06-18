@@ -1,5 +1,4 @@
 import {FIELDS_DICT} from "@src/interfaces/IField";
-import {AnkiConnectNote} from "@src/interfaces/IAnkiConnectNote";
 
 export interface PluginSettings {
     API_TOKEN: string
@@ -33,11 +32,11 @@ export interface PluginSettings {
 
 export interface CardainerFileSettingsData {
     //All the data that a file would need.
+
     fieldsDict: FIELDS_DICT
     customRegexps: Record<string, string>
     fileLinkFieldsByCardTemplateName: Record<string, string>
     contextFieldByCardTemplateName: Record<string, string>
-    template: AnkiConnectNote
     existingMochiCardIds: string[]
     vaultName: string
 
@@ -56,14 +55,15 @@ export interface CardainerFileSettingsData {
     addFileLink: boolean
     folderDecks: Record<string, string>
     folderTags: Record<string, string>
-    defaultTag: string
-    defaultDeckName:string
+    defaultTags: string[]
+    defaultDeckName: string
 }
 
 
 export interface CacheData {
     settings: PluginSettings,
-    "persisted_attachments": Record<string, string>
-    "file_hashes": Record<string, string>,
-    "fields_dict": Record<string, string[]>
+    persisted_attachment_links_by_id: Record<string, string>
+    file_hashes_by_path: Record<string, string>,
+    card_hashes_by_id: Record<string, string>,
+    field_names_by_template_name: Record<string, string[]>
 }

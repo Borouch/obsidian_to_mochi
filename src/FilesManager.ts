@@ -118,7 +118,7 @@ export class FileManager {
             }
         }
         // If no decks specified
-        return this.data.template.deckName;
+        return this.data.defaultDeckName;
     }
 
     getDefaultTags(file: TFile, folder_path_list: TFolder[]): string[] {
@@ -130,7 +130,7 @@ export class FileManager {
                 tags_list.push(...folder_tags[folder.path].split(" "));
             }
         }
-        tags_list.push(...this.data.template.tags);
+        tags_list.push(...this.data.defaultTags);
         return tags_list;
     }
 
@@ -144,8 +144,8 @@ export class FileManager {
         result.BEGIN_END_CARD = this.data.BEGIN_END_CARD;
         result.INLINE_REGEXP = this.data.INLINE_REGEXP;
         result.DELETE_REGEXP = this.data.DELETE_REGEXP;
-        result.template.deckName = this.getDefaultDeck(file, folderPathList);
-        result.template.tags = this.getDefaultTags(file, folderPathList);
+        result.defaultDeckName = this.getDefaultDeck(file, folderPathList);
+        result.defaultTags = this.getDefaultTags(file, folderPathList);
         return result;
     }
 
@@ -197,7 +197,7 @@ export class FileManager {
                 ...cardsFile.mochiCardsToEdit,
                 ...cardsFile.allTypeMochiCardsToAdd,
             ]) {
-                debugger
+
                 const toAddAttachmentLinksById: Record<string, string> =
                     findAttachmentLinksToAdd(
                         mochiCard.runtimeProps.attachmentLinkByGeneratedId,

@@ -17,18 +17,18 @@
       "templater": ""
     },
     "Syntax": {
-      "Begin Note": "START",
-      "End Note": "END",
-      "Begin Inline Note": "STARTI",
-      "End Inline Note": "ENDI",
+      "Begin Card": "START",
+      "End Card": "END",
+      "Begin Inline Card": "STARTI",
+      "End Inline Card": "ENDI",
       "Target Deck Line": "TARGET DECK",
       "File Tags Line": "FILE TAGS",
-      "Delete Note Line": "DELETE",
+      "Delete Card Line": "DELETE",
       "Frozen Fields Line": "FROZEN"
     },
     "Defaults": {
-      "Tag": "Obsidian_to_Anki",
-      "Deck": "Default",
+      "Tag": "obsidian-to-mochi",
+      "DeckName": "Default",
       "Scheduling Interval": 0,
       "Add File Link": false,
       "Add Context": false,
@@ -37,15 +37,6 @@
       "ID Comments": true,
       "Add Obsidian Tags": false
     }
-  },
-  "Added Media": {
-    "111aa3.png": "zdIZRSdhApXg6jrk.png",
-    "Pasted image 20230616005230.png": "pPYPeHia6pwkdzMt.png"
-  },
-  "File Hashes": {
-    "templater/SR token.md": "2af7c4ac3686c7b7373b9984dbcc3775",
-    "SR.md": "6e1df13d77ef859432ce4ab515c3cad3",
-    "Spaced repetition dashboard.md": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "fields_dict": {
     "Basic (type in the answer)": [
@@ -92,5 +83,16 @@
       "Front",
       "Back"
     ]
+  },
+
+  "file_hashes": {
+    "templater/SR token.md": "2af7c4ac3686c7b7373b9984dbcc3775",
+    "SR.md": "036f75fa994e53b9e0e2e7741f435f42",
+    "Spaced repetition dashboard.md": "d41d8cd98f00b204e9800998ecf8427e",
+    "Attachment handler concerns.md": "b029e0956214ec34ca7c49b60f1ff052"
+  },
+
+  "persisted_attachments": {
+    "Pasted image 20230617144621.png": "G7e5RSoL0bjx93e7.png"
   }
 }

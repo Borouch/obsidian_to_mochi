@@ -1,6 +1,8 @@
 import {Notice, PluginSettingTab, Setting, TFolder} from "obsidian";
 import ObsidianToMochiPlugin from "@src/main";
 import {MochiSyncService} from "@src/services/MochiSyncService";
+import {SettingsManager} from "@src/utils/SettingsManager";
+import {CacheDataManager} from "@src/utils/CacheDataManager";
 
 const defaultDescs = {
     Tag: "The tag that the plugin automatically adds to any generated cards.",
@@ -48,7 +50,7 @@ export class SettingsTab extends PluginSettingTab {
         let link_field = new Setting(row_cells[2] as HTMLElement).addDropdown(
             async (dropdown) => {
                 if (!plugin.fieldNamesByTemplateName[note_type]) {
-                    plugin.fieldNamesByTemplateName = await plugin.loadFieldsDict();
+                    plugin.fieldNamesByTemplateName = await CacheDataManager.i.loadFieldNamesByTemplateName();
                     if (
                         Object.keys(plugin.fieldNamesByTemplateName).length !=
                         plugin.mochiTemplateNames.length
@@ -375,8 +377,8 @@ export class SettingsTab extends PluginSettingTab {
                             plugin.mochiTemplateNames = MochiSyncService.mochiTemplates.map(
                                 (t) => t.name
                             );
-                            plugin.regenerateSettingsRegexps();
-                            plugin.fieldNamesByTemplateName = await plugin.loadFieldsDict();
+                            SettingsManager.i.regenerateSettingsRegexps();
+                            plugin.fieldNamesByTemplateName = CacheDataManager.i.loadFieldNamesByTemplateName();
                             if (
                                 Object.keys(plugin.fieldNamesByTemplateName).length !=
                                 plugin.mochiTemplateNames.length
@@ -417,7 +419,7 @@ export class SettingsTab extends PluginSettingTab {
                     .setButtonText("Clear")
                     .setClass("mod-cta")
                     .onClick(async () => {
-                        plugin.addedAttachmentLinkByGeneratedId = {};
+                        plugin.persistedAttachmentLinkByGeneratedId = {};
                         await plugin.saveAllData();
                         new Notice("Media Cache cleared successfully!");
                     });
@@ -434,7 +436,7 @@ export class SettingsTab extends PluginSettingTab {
                     .setButtonText("Clear")
                     .setClass("mod-cta")
                     .onClick(async () => {
-                        plugin.fileHashes = {};
+                        plugin.fileHashesByPath = {};
                         await plugin.saveAllData();
                         new Notice("File Hash Cache cleared successfully!");
                     });

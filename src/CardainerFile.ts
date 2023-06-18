@@ -78,7 +78,7 @@ abstract class AbstractCardainerFile {
     path: string
     url: string
     originalContents: string
-    data: CardainerFileSettingsData
+    data: CachedMetadata
     tFileCache: CachedMetadata
 
     frozenFieldDict: FROZEN_FIELDS_DICT
@@ -98,7 +98,7 @@ abstract class AbstractCardainerFile {
 
     formatter: FormatConverter
 
-    constructor(file_contents: string, path: string, url: string, data: CardainerFileSettingsData, file_cache: CachedMetadata) {
+    constructor(file_contents: string, path: string, url: string, data: CachedMetadata, file_cache: CachedMetadata) {
         this.data = data
         this.contents = file_contents
         this.path = path
@@ -135,7 +135,7 @@ abstract class AbstractCardainerFile {
 
     setup_target_deck() {
         const result = this.contents.match(this.data.DECK_REGEXP)
-        this.targetDeckName = result ? result[1] : this.data.template["deckName"]
+        this.targetDeckName = result ? result[1] : this.data.defaultDeckName
     }
 
     setup_global_tags() {
@@ -200,35 +200,35 @@ abstract class AbstractCardainerFile {
 }
 
 export class CardainerFile extends AbstractCardainerFile {
-    ignore_spans: [number, number][]
-    custom_note_type_regexps: Record<string, string>
+    ignoreSpans: [number, number][]
+    customCardTypeRegexps: Record<string, string>
     inlineCardsToAdd: MochiCard[]
     inlineIdIndexes: number[]
     regexCardsToAdd: MochiCard[]
     regexIdIndexes: number[]
 
-    constructor(file_contents: string, path: string, url: string, data: CardainerFileSettingsData, file_cache: CachedMetadata) {
-        super(file_contents, path, url, data, file_cache)
-        this.custom_note_type_regexps = data.customRegexps
+    constructor(file_contents: string, path: string, url: string, data: CardainerFileSettingsData, cacheData: CachedMetadata) {
+        super(file_contents, path, url, data, cacheData)
+        this.customCardTypeRegexps = data.customRegexps
     }
 
     add_spans_to_ignore() {
-        this.ignore_spans = []
-        this.ignore_spans.push(...spans(this.data.FROZEN_REGEXP, this.contents))
+        this.ignoreSpans = []
+        this.ignoreSpans.push(...spans(this.data.FROZEN_REGEXP, this.contents))
         const deck_result = this.contents.match(this.data.DECK_REGEXP)
         if (deck_result) {
-            this.ignore_spans.push([deck_result.index, deck_result.index + deck_result[0].length])
+            this.ignoreSpans.push([deck_result.index, deck_result.index + deck_result[0].length])
         }
         const tag_result = this.contents.match(this.data.TAG_REGEXP)
         if (tag_result) {
-            this.ignore_spans.push([tag_result.index, tag_result.index + tag_result[0].length])
+            this.ignoreSpans.push([tag_result.index, tag_result.index + tag_result[0].length])
         }
-        this.ignore_spans.push(...spans(this.data.BEGIN_END_CARD, this.contents))
-        this.ignore_spans.push(...spans(this.data.INLINE_REGEXP, this.contents))
-        this.ignore_spans.push(...spans(c.OBS_INLINE_MATH_REGEXP, this.contents))
-        this.ignore_spans.push(...spans(c.OBS_DISPLAY_MATH_REGEXP, this.contents))
-        this.ignore_spans.push(...spans(c.OBS_CODE_REGEXP, this.contents))
-        this.ignore_spans.push(...spans(c.OBS_DISPLAY_CODE_REGEXP, this.contents))
+        this.ignoreSpans.push(...spans(this.data.BEGIN_END_CARD, this.contents))
+        this.ignoreSpans.push(...spans(this.data.INLINE_REGEXP, this.contents))
+        this.ignoreSpans.push(...spans(c.OBS_INLINE_MATH_REGEXP, this.contents))
+        this.ignoreSpans.push(...spans(c.OBS_DISPLAY_MATH_REGEXP, this.contents))
+        this.ignoreSpans.push(...spans(c.OBS_CODE_REGEXP, this.contents))
+        this.ignoreSpans.push(...spans(c.OBS_DISPLAY_CODE_REGEXP, this.contents))
     }
 
     setupScan() {
@@ -336,8 +336,8 @@ export class CardainerFile extends AbstractCardainerFile {
                 let id_str = search_id ? ID_REGEXP_STR : ""
                 let tag_str = search_tags ? TAG_REGEXP_STR : ""
                 let regexp: RegExp = new RegExp(regexp_str + tag_str + id_str, 'gm')
-                for (let match of findMatchNotIgnored(regexp, this.contents, this.ignore_spans)) {
-                    this.ignore_spans.push([match.index, match.index + match[0].length])
+                for (let match of findMatchNotIgnored(regexp, this.contents, this.ignoreSpans)) {
+                    this.ignoreSpans.push([match.index, match.index + match[0].length])
                     const mochiCard: MochiCard | null = new RegexCard(
                         match, cardTemplateName, this.data.fieldsDict,
                         search_tags, search_id, this.data.isCurlyCloze, this.data.isHighlightsToCloze, this.formatter
@@ -355,7 +355,7 @@ export class CardainerFile extends AbstractCardainerFile {
                         if (!(this.data.existingMochiCardIds.includes(mochiCard.id))) {
                             if (mochiCard.id == CLOZE_ERROR) {
                                 // This means it wasn't actually a card! So we should remove it from ignore_spans
-                                this.ignore_spans.pop()
+                                this.ignoreSpans.pop()
                                 continue
                             }
                             console.warn("Note with id", mochiCard.id, " in file ", this.path, " does not exist in Anki!")
@@ -365,7 +365,7 @@ export class CardainerFile extends AbstractCardainerFile {
                     } else {
                         if (mochiCard.id == CLOZE_ERROR) {
                             // This means it wasn't actually a card! So we should remove it from ignore_spans
-                            this.ignore_spans.pop()
+                            this.ignoreSpans.pop()
                             continue
                         }
                         mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
@@ -384,8 +384,8 @@ export class CardainerFile extends AbstractCardainerFile {
         this.setupScan()
         this.scanBeginEndCards()
         this.scanInlineCards()
-        for (let cardTemplateName in this.custom_note_type_regexps) {
-            const regexp_str: string = this.custom_note_type_regexps[cardTemplateName]
+        for (let cardTemplateName in this.customCardTypeRegexps) {
+            const regexp_str: string = this.customCardTypeRegexps[cardTemplateName]
             if (regexp_str) {
                 this.searchContentRegexpMatchCards(cardTemplateName, regexp_str)
             }

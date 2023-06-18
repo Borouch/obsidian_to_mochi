@@ -15,18 +15,8 @@ export async function pluginSettingsToCardainerFileSettings(app: App, settings: 
     cardainerSettings.contextFieldByCardTemplateName = settings.CONTEXT_FIELDS
     cardainerSettings.folderDecks = settings.FOLDER_DECKS
     cardainerSettings.folderTags = settings.FOLDER_TAGS
-    cardainerSettings.defaultTag=settings.Defaults.Tag
+    cardainerSettings.defaultTags=[settings.Defaults.Tag]
     cardainerSettings.defaultDeckName=settings.Defaults.DeckName
-    cardainerSettings.template = {
-        deckName: settings.Defaults.DeckName,
-        modelName: "",
-        fields: {},
-        options: {
-            allowDuplicate: false,
-            duplicateScope: "deck"
-        },
-        tags: [settings.Defaults.Tag]
-    }
 
     cardainerSettings.existingMochiCardIds = MochiSyncService.mochiCards.map((c) => c.id)
 
