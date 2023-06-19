@@ -8,7 +8,13 @@
       "Cloze (overlapping)": "",
       "Basic (and reversed card)": ""
     },
-    "FILE_LINK_FIELDS": {},
+    "FILE_LINK_FIELDS": {
+      "Basic (type in the answer)": "Front",
+      "Basic": "Front",
+      "DRAW": "DRAW",
+      "Cloze (overlapping)": "Text15",
+      "Basic (and reversed card)": "Front"
+    },
     "CONTEXT_FIELDS": {},
     "FOLDER_DECKS": {
       "templater": ""
@@ -38,7 +44,9 @@
       "Add Obsidian Tags": false
     }
   },
-  "fields_dict": {
+  "card_hashes_by_id": {},
+  "persisted_attachment_links_by_id": {},
+  "field_names_by_template_name": {
     "Basic (type in the answer)": [
       "Front",
       "Back"
@@ -84,15 +92,5 @@
       "Back"
     ]
   },
-
-  "file_hashes": {
-    "templater/SR token.md": "2af7c4ac3686c7b7373b9984dbcc3775",
-    "SR.md": "036f75fa994e53b9e0e2e7741f435f42",
-    "Spaced repetition dashboard.md": "d41d8cd98f00b204e9800998ecf8427e",
-    "Attachment handler concerns.md": "b029e0956214ec34ca7c49b60f1ff052"
-  },
-
-  "persisted_attachments": {
-    "Pasted image 20230617144621.png": "G7e5RSoL0bjx93e7.png"
-  }
+  "file_hashes_by_path": {}
 }

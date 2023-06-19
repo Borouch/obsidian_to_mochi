@@ -1,6 +1,8 @@
-export function generateBasicAuthToken(username:string,password:string=''){
+export function generateBasicAuthToken(username: string, password: string = '') {
+    if (!username) return ''
     return Buffer.from(`${username}:${password}`).toString('base64');
 }
+
 export function generateRandomId(length: number): string {
     const characters: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result: string = '';

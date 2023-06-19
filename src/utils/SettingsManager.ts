@@ -1,10 +1,6 @@
-import {CacheData, PluginSettings} from "@src/interfaces/ISettings";
-import {MochiSyncService} from "@src/services/MochiSyncService";
-import {Notice} from "obsidian";
-import {ModelNotFoundError} from "@src/exceptions/ModelNotFoundError";
-import {debug} from "@src/utils/Logger";
+import {PluginSettings} from "@src/interfaces/ISettings";
 import ObsidianToMochiPlugin from "@src/main";
-import {CacheDataManager} from "@src/utils/CacheDataManager";
+import {MochiTemplate} from "@src/models/MochiTemplate";
 
 export class SettingsManager {
 
@@ -29,20 +25,13 @@ export class SettingsManager {
         return SettingsManager._i;
     }
 
-    public async generateFieldNamesByTemplateName(mochiTemplateNames: string[]): Promise<Record<string, string[]>> {
+    public generateFieldNamesByTemplateName(mochiTemplates: MochiTemplate[]): Record<string, string[]> {
         let fieldNamesByTemplateName = {};
-        for (let mochiTemplateName of mochiTemplateNames) {
-            const template = MochiSyncService.mochiTemplates.find(
-                (t) => t.name === mochiTemplateName
-            );
-            if (!template) {
-                new Notice("Something went wrong, check console for details");
-                throw new ModelNotFoundError("Template not found");
-            }
+        for (let mochiTemplate of mochiTemplates) {
 
-            fieldNamesByTemplateName[mochiTemplateName] = Object.keys(
-                template.fields
-            ).map((k) => template.fields[k].name);
+            fieldNamesByTemplateName[mochiTemplate.name] = Object.keys(
+                mochiTemplate.fields
+            ).map((fieldId) => mochiTemplate.fields[fieldId].name);
         }
         return fieldNamesByTemplateName;
     }
@@ -77,25 +66,13 @@ export class SettingsManager {
                 "Add Obsidian Tags": false,
             },
         };
-        /*Making settings from scratch, so need note types*/
-        this.plugin.mochiTemplateNames = MochiSyncService.mochiTemplates.map(
-            (t) => t.name
-        );
-        this.plugin.cacheData.field_names_by_template_name =
-            await this.generateFieldNamesByTemplateName();
 
-        for (let mochiTemplateName of this.plugin.mochiTemplateNames) {
-            settings["CUSTOM_REGEXPS"][mochiTemplateName] = "";
-            settings["FILE_LINK_FIELDS"][mochiTemplateName] =
-                this.fieldNamesByTemplateName[mochiTemplateName][0];
-        }
         return settings;
     }
 
 
-    public regenerateSettingsRegexps() {
+    public generateSettingsRegexps(mochiTemplateNames: string[]) {
         const settings = this.plugin.settings
-        const mochiTemplateNames = this.plugin.mochiTemplateNames
         let regexpSection = settings["CUSTOM_REGEXPS"];
         // For new mochi template names
         for (let mochiTemplateName of mochiTemplateNames) {
@@ -110,6 +87,15 @@ export class SettingsManager {
                 delete settings["CUSTOM_REGEXPS"][cardTemplateNames];
             }
         }
+    }
+
+    public generateFileLinkFields(mochiTemplateNames: string[]) {
+        const settings = this.plugin.settings
+        for (const name of mochiTemplateNames) {
+            settings["FILE_LINK_FIELDS"][name] =
+                this.plugin.cacheData.field_names_by_template_name[name][0];
+        }
+
     }
 
 }

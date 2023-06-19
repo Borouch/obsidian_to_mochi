@@ -1,5 +1,4 @@
 import {addIcon, Notice, Plugin} from "obsidian";
-import {SettingsTab} from "./Settings";
 import {debug} from "@src/utils/Logger";
 
 import axios from "axios";
@@ -8,11 +7,11 @@ import {FileManager} from "@src/FilesManager";
 import {CacheData, CardainerFileSettingsData, PluginSettings,} from "@src/interfaces/ISettings";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {MochiCardService} from "@src/services/MochiCardService";
-import {MochiTemplateService} from "@src/services/MochiTemplateService";
 import {ANKI_ICON} from "@src/Constants";
 import {generateBasicAuthToken} from "@src/Helpers";
 import {SettingsManager} from "@src/utils/SettingsManager";
 import {CacheDataManager} from "@src/utils/CacheDataManager";
+import {SettingsTab} from "@src/obsidian-api/SettingsTab";
 
 axios.defaults.baseURL = "https://app.mochi.cards/api";
 axios.defaults.headers.common["Accept"] = "application/json";
@@ -25,49 +24,28 @@ export default class ObsidianToMochiPlugin extends Plugin {
     fileHashesByPath: Record<string, string> = {};
     scheduleId: any;
     settingsManager: SettingsManager;
-    cacheDataManager: CacheDataManager = CacheDataManager.createSingletonInstance(this)
-    cacheData: CacheData = this.cacheDataManager.cacheData
+    cacheDataManager: CacheDataManager
 
+    cacheData: CacheData
 
     async onload() {
         console.log("loading Obsidian_to_Mochi...");
 
         addIcon("flash_card_icon", ANKI_ICON);
 
-        try {
-            this.settingsManager = SettingsManager.createSingletonInstance(this)
-            this.cacheDataManager = CacheDataManager.createSingletonInstance(this)
-            this.cacheData = this.cacheDataManager.cacheData
-            this.settings = this.cacheData.settings
 
+        this.settingsManager = SettingsManager.createSingletonInstance(this);
+
+        this.cacheDataManager = await CacheDataManager.createSingletonInstance(this).init();
+        this.cacheData = this.cacheDataManager.cacheData
+        this.settings = this.cacheData.settings;
+
+        if (this.settings.API_TOKEN) {
             const basicAuthToken = generateBasicAuthToken(this.settings.API_TOKEN);
-            this.setBasicAuthHeader(basicAuthToken)
-            this.cacheDataManager = CacheDataManager.createSingletonInstance(this)
-        } catch (e) {
-            new Notice("Couldn't connect to Mochi! Check console for error message.");
-            return;
+            this.setBasicAuthHeader(basicAuthToken);
+            await this.cacheDataManager.generateMochiConnectionDependentSettings()
         }
-        await MochiTemplateService.index();
-        this.mochiTemplateNames = Object.keys(this.settings["CUSTOM_REGEXPS"]);
-        this.cacheData.field_names_by_template_name =
-            await this.cacheDataManager.loadFieldNamesByTemplateName();
 
-        if (Object.keys(this.cacheData.field_names_by_template_name).length == 0) {
-            new Notice("Need to connect Mochi to generate fields dictionary...");
-            try {
-                this.cacheData.field_names_by_template_name =
-                    await SettingsManager.i.generateFieldNamesByTemplateName();
-                new Notice("Fields dictionary successfully generated!");
-            } catch (e) {
-                new Notice(
-                    "Couldn't connect to Mochi! Check console for error message."
-                );
-                return;
-            }
-        }
-        this.cacheData.persisted_attachment_links_by_id =
-            await CacheDataManager.i.loadPersistedAttachmentLinksById();
-        this.cacheData.file_hashes_by_path = await CacheDataManager.i.loadFileHashesByPath();
 
         this.addSettingTab(new SettingsTab(this.app, this));
 
@@ -90,7 +68,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
     async onunload() {
         console.log("Saving settings for Obsidian_to_mochi...");
-        await CacheDataManager.i.saveAllData();
+        await CacheDataManager.i.saveAllData(this.cacheData);
         console.log("unloading Obsidian_to_mochi...");
     }
 
@@ -134,12 +112,10 @@ export default class ObsidianToMochiPlugin extends Plugin {
             this.cacheDataManager.cacheData.file_hashes_by_path[key] = hashes[key];
         }
         new Notice("All done! Saving file hashes and added media now...");
-        await this.saveAllData();
+        await this.cacheDataManager.saveAllData(this.cacheData);
     }
 
     setBasicAuthHeader(basicAuthToken: string) {
-        axios.defaults.headers.common[
-            "Authorization"
-            ] = `Basic ${basicAuthToken}`;
+        axios.defaults.headers.common["Authorization"] = `Basic ${basicAuthToken}`;
     }
 }

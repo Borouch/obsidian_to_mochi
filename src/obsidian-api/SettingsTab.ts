@@ -1,12 +1,12 @@
-import {Notice, PluginSettingTab, Setting, TFolder} from "obsidian";
+import {Notice, Plugin, PluginSettingTab, Setting, TFolder} from "obsidian";
 import ObsidianToMochiPlugin from "@src/main";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {SettingsManager} from "@src/utils/SettingsManager";
-import {CacheDataManager} from "@src/utils/CacheDataManager";
+import {MochiTemplateService} from "@src/services/MochiTemplateService";
 
 const defaultDescs = {
-    Tag: "The tag that the plugin automatically adds to any generated cards.",
-    Deck: "The deck the plugin adds cards to if TARGET DECK is not specified in the file.",
+    Tag: "The tag that the this.mochiPlugin automatically adds to any generated cards.",
+    Deck: "The deck the this.mochiPlugin adds cards to if TARGET DECK is not specified in the file.",
     "Scheduling Interval":
         "The time, in minutes, between automatic scans of the vault. Set this to 0 to disable automatic scanning.",
     "Add File Link":
@@ -23,20 +23,22 @@ const defaultDescs = {
 };
 
 export class SettingsTab extends PluginSettingTab {
-    setup_custom_regexp(note_type: string, row_cells: HTMLCollection) {
-        const plugin = (this as any).plugin as ObsidianToMochiPlugin;
-        let regexp_section = plugin.settings["CUSTOM_REGEXPS"];
+    // @ts-ignore
+    mochiPlugin = this.plugin as ObsidianToMochiPlugin
+
+    setup_custom_regexp(templateName: string, row_cells: HTMLCollection) {
+        let regexp_section = this.mochiPlugin.settings["CUSTOM_REGEXPS"];
         let custom_regexp = new Setting(row_cells[1] as HTMLElement).addText(
             (text) =>
                 text
                     .setValue(
-                        regexp_section.hasOwnProperty(note_type)
-                            ? regexp_section[note_type]
+                        regexp_section.hasOwnProperty(templateName)
+                            ? regexp_section[templateName]
                             : ""
                     )
                     .onChange((value) => {
-                        plugin.settings["CUSTOM_REGEXPS"][note_type] = value;
-                        plugin.saveAllData();
+                        this.mochiPlugin.settings["CUSTOM_REGEXPS"][templateName] = value;
+                        this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
                     })
         );
         custom_regexp.settingEl = row_cells[1] as HTMLElement;
@@ -44,79 +46,56 @@ export class SettingsTab extends PluginSettingTab {
         custom_regexp.controlEl.className += " anki-center";
     }
 
-    setup_link_field(note_type: string, row_cells: HTMLCollection) {
-        const plugin = (this as any).plugin as ObsidianToMochiPlugin;
-        let link_fields_section = plugin.settings.FILE_LINK_FIELDS;
-        let link_field = new Setting(row_cells[2] as HTMLElement).addDropdown(
+    setup_link_field(templateName: string, rowCells: HTMLCollection) {
+        let link_fields_section = this.mochiPlugin.settings.FILE_LINK_FIELDS;
+        let link_field = new Setting(rowCells[2] as HTMLElement).addDropdown(
             async (dropdown) => {
-                if (!plugin.fieldNamesByTemplateName[note_type]) {
-                    plugin.fieldNamesByTemplateName = await CacheDataManager.i.loadFieldNamesByTemplateName();
-                    if (
-                        Object.keys(plugin.fieldNamesByTemplateName).length !=
-                        plugin.mochiTemplateNames.length
-                    ) {
-                        new Notice(
-                            "Need to connect to Anki to generate fields dictionary..."
-                        );
-                        try {
-                            plugin.fieldNamesByTemplateName =
-                                await plugin.generateFieldNamesByTemplateName();
-                            new Notice("Fields dictionary successfully generated!");
-                        } catch (e) {
-                            new Notice(
-                                "Couldn't connect to Anki! Check console for error message."
-                            );
-                            return;
-                        }
-                    }
-                }
-                const field_names = plugin.fieldNamesByTemplateName[note_type];
+                const field_names = this.mochiPlugin.cacheData.field_names_by_template_name[templateName] ?? [];
                 for (let field of field_names) {
                     dropdown.addOption(field, field);
                 }
                 dropdown.setValue(
-                    link_fields_section.hasOwnProperty(note_type)
-                        ? link_fields_section[note_type]
+                    link_fields_section.hasOwnProperty(templateName)
+                        ? link_fields_section[templateName]
                         : field_names[0]
                 );
                 dropdown.onChange((value) => {
-                    plugin.settings.FILE_LINK_FIELDS[note_type] = value;
-                    plugin.saveAllData();
+                    this.mochiPlugin.settings.FILE_LINK_FIELDS[templateName] = value;
+                    this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
                 });
             }
         );
-        link_field.settingEl = row_cells[2] as HTMLElement;
+        link_field.settingEl = rowCells[2] as HTMLElement;
         link_field.infoEl.remove();
         link_field.controlEl.className += " anki-center";
     }
 
-    setup_context_field(note_type: string, row_cells: HTMLCollection) {
-        const plugin = (this as any).plugin as ObsidianToMochiPlugin;
+    setupContextField(templateName: string, rowCells: HTMLCollection) {
         let context_fields_section: Record<string, string> =
-            plugin.settings.CONTEXT_FIELDS;
-        let context_field = new Setting(row_cells[3] as HTMLElement).addDropdown(
+            this.mochiPlugin.settings.CONTEXT_FIELDS;
+        let context_field = new Setting(rowCells[3] as HTMLElement).addDropdown(
             async (dropdown) => {
-                const field_names = plugin.fieldNamesByTemplateName[note_type];
-                for (let field of field_names) {
+                const fieldNames = this.mochiPlugin.cacheData.field_names_by_template_name[templateName] ?? [];
+                for (let field of fieldNames) {
                     dropdown.addOption(field, field);
                 }
                 dropdown.setValue(
-                    context_fields_section.hasOwnProperty(note_type)
-                        ? context_fields_section[note_type]
-                        : field_names[0]
+                    context_fields_section.hasOwnProperty(templateName)
+                        ? context_fields_section[templateName]
+                        : fieldNames[0]
                 );
                 dropdown.onChange((value) => {
-                    plugin.settings.CONTEXT_FIELDS[note_type] = value;
-                    plugin.saveAllData();
+                    this.mochiPlugin.settings.CONTEXT_FIELDS[templateName] = value;
+                    this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
                 });
             }
         );
-        context_field.settingEl = row_cells[3] as HTMLElement;
+        context_field.settingEl = rowCells[3] as HTMLElement;
         context_field.infoEl.remove();
         context_field.controlEl.className += " anki-center";
     }
 
-    create_collapsible(name: string) {
+    createCollapsible(name: string) {
         let {containerEl} = this;
         let div = containerEl.createEl("div", {cls: "collapsible-item"});
         div.innerHTML = `
@@ -135,18 +114,17 @@ export class SettingsTab extends PluginSettingTab {
         });
     }
 
-    setup_note_table() {
+    setupCardTable() {
         let {containerEl} = this;
-        const plugin = (this as any).plugin as ObsidianToMochiPlugin;
         containerEl.createEl("h3", {text: "Note type settings"});
-        this.create_collapsible("Note Type Table");
+        this.createCollapsible("Template Table");
         let note_type_table = containerEl.createEl("table", {
             cls: "anki-settings-table",
         });
         let head = note_type_table.createTHead();
         let header_row = head.insertRow();
         for (let header of [
-            "Note Type",
+            "Template name",
             "Custom Regexp",
             "File Link Field",
             "Context Field",
@@ -156,10 +134,10 @@ export class SettingsTab extends PluginSettingTab {
             header_row.appendChild(th);
         }
         let main_body = note_type_table.createTBody();
-        if (!plugin.settings.hasOwnProperty("CONTEXT_FIELDS")) {
-            plugin.settings.CONTEXT_FIELDS = {};
+        if (!this.mochiPlugin.settings.hasOwnProperty("CONTEXT_FIELDS")) {
+            this.mochiPlugin.settings.CONTEXT_FIELDS = {};
         }
-        for (let note_type of plugin.mochiTemplateNames) {
+        for (let note_type of this.mochiPlugin.mochiTemplateNames) {
             let row = main_body.insertRow();
 
             row.insertCell();
@@ -172,78 +150,76 @@ export class SettingsTab extends PluginSettingTab {
             row_cells[0].innerHTML = note_type;
             this.setup_custom_regexp(note_type, row_cells);
             this.setup_link_field(note_type, row_cells);
-            this.setup_context_field(note_type, row_cells);
+            this.setupContextField(note_type, row_cells);
         }
     }
 
-    setup_syntax() {
+    setupSyntax() {
         let {containerEl} = this;
-        const plugin = (this as any).plugin as ObsidianToMochiPlugin;
         let syntax_settings = containerEl.createEl("h3", {
             text: "Syntax Settings",
         });
-        for (let key of Object.keys(plugin.settings["Syntax"])) {
+        for (let key of Object.keys(this.mochiPlugin.settings["Syntax"])) {
             new Setting(syntax_settings).setName(key).addText((text) =>
-                text.setValue(plugin.settings["Syntax"][key]).onChange((value) => {
-                    plugin.settings["Syntax"][key] = value;
-                    plugin.saveAllData();
+                text.setValue(this.mochiPlugin.settings["Syntax"][key]).onChange((value) => {
+                    this.mochiPlugin.settings["Syntax"][key] = value;
+                    this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
                 })
             );
         }
     }
 
-    setup_defaults() {
+    setupDefaults() {
         let {containerEl} = this;
-        const plugin = (this as any).plugin as ObsidianToMochiPlugin;
         let defaults_settings = containerEl.createEl("h3", {text: "Defaults"});
 
         // To account for new add context
-        if (!plugin.settings["Defaults"].hasOwnProperty("Add Context")) {
-            plugin.settings["Defaults"]["Add Context"] = false;
+        if (!this.mochiPlugin.settings["Defaults"].hasOwnProperty("Add Context")) {
+            this.mochiPlugin.settings["Defaults"]["Add Context"] = false;
         }
         // To account for new scheduling interval
-        if (!plugin.settings["Defaults"].hasOwnProperty("Scheduling Interval")) {
-            plugin.settings["Defaults"]["Scheduling Interval"] = 0;
+        if (!this.mochiPlugin.settings["Defaults"].hasOwnProperty("Scheduling Interval")) {
+            this.mochiPlugin.settings["Defaults"]["Scheduling Interval"] = 0;
         }
         // To account for new highlights to clozes
         if (
-            !plugin.settings["Defaults"].hasOwnProperty(
+            !this.mochiPlugin.settings["Defaults"].hasOwnProperty(
                 "CurlyCloze - Highlights to Clozes"
             )
         ) {
-            plugin.settings["Defaults"]["CurlyCloze - Highlights to Clozes"] = false;
+            this.mochiPlugin.settings["Defaults"]["CurlyCloze - Highlights to Clozes"] = false;
         }
         // To account for new add obsidian tags
-        if (!plugin.settings["Defaults"].hasOwnProperty("Add Obsidian Tags")) {
-            plugin.settings["Defaults"]["Add Obsidian Tags"] = false;
+        if (!this.mochiPlugin.settings["Defaults"].hasOwnProperty("Add Obsidian Tags")) {
+            this.mochiPlugin.settings["Defaults"]["Add Obsidian Tags"] = false;
         }
-        for (let key of Object.keys(plugin.settings["Defaults"])) {
+        for (let key of Object.keys(this.mochiPlugin.settings["Defaults"])) {
             // To account for removal of regex setting
             if (key === "Regex") {
                 continue;
             }
-            if (typeof plugin.settings["Defaults"][key] === "string") {
+            if (typeof this.mochiPlugin.settings["Defaults"][key] === "string") {
                 new Setting(defaults_settings)
                     .setName(key)
                     .setDesc(defaultDescs[key])
                     .addText((text) =>
                         text
-                            .setValue(plugin.settings["Defaults"][key])
+                            .setValue(this.mochiPlugin.settings["Defaults"][key])
                             .onChange((value) => {
-                                plugin.settings["Defaults"][key] = value;
-                                plugin.saveAllData();
+                                this.mochiPlugin.settings["Defaults"][key] = value;
+                                this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
                             })
                     );
-            } else if (typeof plugin.settings["Defaults"][key] === "boolean") {
+            } else if (typeof this.mochiPlugin.settings["Defaults"][key] === "boolean") {
                 new Setting(defaults_settings)
                     .setName(key)
                     .setDesc(defaultDescs[key])
                     .addToggle((toggle) =>
                         toggle
-                            .setValue(plugin.settings["Defaults"][key])
+                            .setValue(this.mochiPlugin.settings["Defaults"][key])
                             .onChange((value) => {
-                                plugin.settings["Defaults"][key] = value;
-                                plugin.saveAllData();
+                                this.mochiPlugin.settings["Defaults"][key] = value;
+                                this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
                             })
                     );
             } else {
@@ -252,21 +228,21 @@ export class SettingsTab extends PluginSettingTab {
                     .setDesc(defaultDescs[key])
                     .addSlider((slider) => {
                         slider
-                            .setValue(plugin.settings["Defaults"][key])
+                            .setValue(this.mochiPlugin.settings["Defaults"][key])
                             .setLimits(0, 360, 5)
                             .setDynamicTooltip()
                             .onChange(async (value) => {
-                                plugin.settings["Defaults"][key] = value;
-                                await plugin.saveAllData();
-                                if (plugin.hasOwnProperty("schedule_id")) {
-                                    window.clearInterval(plugin.scheduleId);
+                                this.mochiPlugin.settings["Defaults"][key] = value;
+                                await this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
+                                if (this.mochiPlugin.hasOwnProperty("schedule_id")) {
+                                    window.clearInterval(this.mochiPlugin.scheduleId);
                                 }
                                 if (value != 0) {
-                                    plugin.scheduleId = window.setInterval(
-                                        async () => await plugin.scanVault(),
+                                    this.mochiPlugin.scheduleId = window.setInterval(
+                                        async () => await this.mochiPlugin.scanVault(),
                                         value * 1000 * 60
                                     );
-                                    plugin.registerInterval(plugin.scheduleId);
+                                    this.mochiPlugin.registerInterval(this.mochiPlugin.scheduleId);
                                 }
                             });
                     });
@@ -275,7 +251,7 @@ export class SettingsTab extends PluginSettingTab {
     }
 
     getFolders(): TFolder[] {
-        const app = (this as any).plugin.app;
+        const app = this.mochiPlugin.app;
         let folder_list: TFolder[] = [app.vault.getRoot()];
         for (let folder of folder_list) {
             let filtered_list: TFolder[] = folder.children.filter((element) =>
@@ -287,15 +263,14 @@ export class SettingsTab extends PluginSettingTab {
     }
 
     setupFolderDeck(folder: TFolder, row_cells: HTMLCollection) {
-        const plugin = (this as any).plugin;
-        let folder_decks = plugin.settings.FOLDER_DECKS;
+        let folder_decks = this.mochiPlugin.settings.FOLDER_DECKS;
         if (!folder_decks.hasOwnProperty(folder.path)) {
             folder_decks[folder.path] = "";
         }
         let folder_deck = new Setting(row_cells[1] as HTMLElement).addText((text) =>
             text.setValue(folder_decks[folder.path]).onChange((value) => {
-                plugin.settings.FOLDER_DECKS[folder.path] = value;
-                plugin.saveAllData();
+                this.mochiPlugin.settings.FOLDER_DECKS[folder.path] = value;
+                this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
             })
         );
         folder_deck.settingEl = row_cells[1] as HTMLElement;
@@ -304,15 +279,14 @@ export class SettingsTab extends PluginSettingTab {
     }
 
     setupFolderTag(folder: TFolder, row_cells: HTMLCollection) {
-        const plugin = (this as any).plugin;
-        let folder_tags = plugin.settings.FOLDER_TAGS;
+        let folder_tags = this.mochiPlugin.settings.FOLDER_TAGS;
         if (!folder_tags.hasOwnProperty(folder.path)) {
             folder_tags[folder.path] = "";
         }
         let folder_tag = new Setting(row_cells[2] as HTMLElement).addText((text) =>
             text.setValue(folder_tags[folder.path]).onChange((value) => {
-                plugin.settings.FOLDER_TAGS[folder.path] = value;
-                plugin.saveAllData();
+                this.mochiPlugin.settings.FOLDER_TAGS[folder.path] = value;
+                this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
             })
         );
         folder_tag.settingEl = row_cells[2] as HTMLElement;
@@ -322,10 +296,9 @@ export class SettingsTab extends PluginSettingTab {
 
     setupFolderTable() {
         let {containerEl} = this;
-        const plugin = (this as any).plugin;
         const folder_list = this.getFolders();
         containerEl.createEl("h3", {text: "Folder settings"});
-        this.create_collapsible("Folder Table");
+        this.createCollapsible("Folder Table");
         let folder_table = containerEl.createEl("table", {
             cls: "anki-settings-table",
         });
@@ -337,11 +310,11 @@ export class SettingsTab extends PluginSettingTab {
             header_row.appendChild(th);
         }
         let main_body = folder_table.createTBody();
-        if (!plugin.settings.hasOwnProperty("FOLDER_DECKS")) {
-            plugin.settings.FOLDER_DECKS = {};
+        if (!this.mochiPlugin.settings.hasOwnProperty("FOLDER_DECKS")) {
+            this.mochiPlugin.settings.FOLDER_DECKS = {};
         }
-        if (!plugin.settings.hasOwnProperty("FOLDER_TAGS")) {
-            plugin.settings.FOLDER_TAGS = {};
+        if (!this.mochiPlugin.settings.hasOwnProperty("FOLDER_TAGS")) {
+            this.mochiPlugin.settings.FOLDER_TAGS = {};
         }
         for (let folder of folder_list) {
             let row = main_body.insertRow();
@@ -360,12 +333,11 @@ export class SettingsTab extends PluginSettingTab {
 
     setupButtons() {
         let {containerEl} = this;
-        const plugin = (this as any).plugin as ObsidianToMochiPlugin;
         let action_buttons = containerEl.createEl("h3", {text: "Actions"});
         new Setting(action_buttons)
             .setName("Regenerate Note Type Table")
             .setDesc(
-                "Connect to Anki to regenerate the table with new note types, or get rid of deleted note types."
+                "Connect to Anki to regenerate the table with new templates, or get rid of deleted templates."
             )
             .addButton((button) => {
                 button
@@ -374,35 +346,14 @@ export class SettingsTab extends PluginSettingTab {
                     .onClick(async () => {
                         new Notice("Need to connect to Anki to update note types...");
                         try {
-                            plugin.mochiTemplateNames = MochiSyncService.mochiTemplates.map(
-                                (t) => t.name
-                            );
-                            SettingsManager.i.regenerateSettingsRegexps();
-                            plugin.fieldNamesByTemplateName = CacheDataManager.i.loadFieldNamesByTemplateName();
-                            if (
-                                Object.keys(plugin.fieldNamesByTemplateName).length !=
-                                plugin.mochiTemplateNames.length
-                            ) {
-                                new Notice(
-                                    "Need to connect to Anki to generate fields dictionary..."
-                                );
-                                try {
-                                    plugin.fieldNamesByTemplateName =
-                                        await plugin.generateFieldNamesByTemplateName();
-                                    new Notice("Fields dictionary successfully generated!");
-                                } catch (e) {
-                                    new Notice(
-                                        "Couldn't connect to Anki! Check console for error message."
-                                    );
-                                    return;
-                                }
-                            }
-                            await plugin.saveAllData();
+
+                            await this.mochiPlugin.cacheDataManager.generateMochiConnectionDependentSettings()
+
                             this.setupDisplay();
-                            new Notice("Note types updated!");
+                            new Notice("Template names updated!");
                         } catch (e) {
                             new Notice(
-                                "Couldn't connect to Anki! Check console for details."
+                                "Couldn't connect to mochi! Check console for details."
                             );
                         }
                     });
@@ -412,32 +363,32 @@ export class SettingsTab extends PluginSettingTab {
             .setDesc(
                 `Clear the cached list of media filenames that have been added to Anki.
 
-			The plugin will skip over adding a media file if it's added a file with the same name before, so clear this if e.g. you've updated the media file with the same name.`
+			The this.mochiPlugin will skip over adding a media file if it's added a file with the same name before, so clear this if e.g. you've updated the media file with the same name.`
             )
             .addButton((button) => {
                 button
                     .setButtonText("Clear")
                     .setClass("mod-cta")
                     .onClick(async () => {
-                        plugin.persistedAttachmentLinkByGeneratedId = {};
-                        await plugin.saveAllData();
+                        this.mochiPlugin.cacheData.persisted_attachment_links_by_id = {};
+                        await this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
                         new Notice("Media Cache cleared successfully!");
                     });
             });
         new Setting(action_buttons)
             .setName("Clear File Hash Cache")
             .setDesc(
-                `Clear the cached dictionary of file hashes that the plugin has scanned before.
+                `Clear the cached dictionary of file hashes that the this.mochiPlugin has scanned before.
 
-			The plugin will skip over a file if the file path and the hash is unaltered.`
+			The this.mochiPlugin will skip over a file if the file path and the hash is unaltered.`
             )
             .addButton((button) => {
                 button
                     .setButtonText("Clear")
                     .setClass("mod-cta")
                     .onClick(async () => {
-                        plugin.fileHashesByPath = {};
-                        await plugin.saveAllData();
+                        this.mochiPlugin.cacheData.file_hashes_by_path = {};
+                        await this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
                         new Notice("File Hash Cache cleared successfully!");
                     });
             });
@@ -446,12 +397,12 @@ export class SettingsTab extends PluginSettingTab {
     setupApiField() {
         let {containerEl} = this;
 
-        const plugin = (this as any).plugin as ObsidianToMochiPlugin;
+        const h = containerEl.createEl("h2",{text: "API key"});
         const apiField = containerEl.createEl("div");
         new Setting(apiField).setName("Mochi API key").addText((t) =>
-            t.setValue(plugin.settings.API_TOKEN).onChange(async (value) => {
-                plugin.settings.API_TOKEN = value
-                await plugin.saveAllData();
+            t.setValue(this.mochiPlugin.settings.API_TOKEN).onChange(async (value) => {
+                this.mochiPlugin.settings.API_TOKEN = value
+                await this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
             })
         );
     }
@@ -466,10 +417,10 @@ export class SettingsTab extends PluginSettingTab {
             href: "https://github.com/Pseudonium/Obsidian_to_Anki/wiki",
         });
         this.setupApiField()
-        this.setup_note_table();
+        this.setupCardTable();
         this.setupFolderTable();
-        this.setup_syntax();
-        this.setup_defaults();
+        this.setupSyntax();
+        this.setupDefaults();
         this.setupButtons();
     }
 
