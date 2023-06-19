@@ -92,19 +92,6 @@ export class SettingsManager {
         return settings;
     }
 
-    public async loadSettingsOrGenerateDefault(): Promise<PluginSettings> {
-        let loadedCacheData: CacheData = await this.plugin.loadData();
-        debug({currCacheData: loadedCacheData});
-        if (loadedCacheData == null || Object.keys(loadedCacheData).length != 4) {
-            new Notice("Need to connect to Mochi generate default settings...");
-            const defaultCacheData = await CacheDataManager.i.saveDefaultCacheData()
-            new Notice("Default settings successfully generated!");
-            return defaultCacheData.settings;
-        } else {
-            return loadedCacheData.settings;
-        }
-    }
-
 
     public regenerateSettingsRegexps() {
         const settings = this.plugin.settings

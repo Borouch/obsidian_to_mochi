@@ -6,12 +6,12 @@ export class CacheDataManager {
     public cacheData: CacheData
 
     private constructor(public plugin: ObsidianToMochiPlugin) {
-        this.cacheData = this.getDefaultCacheData()
+        this.cacheData = this.loadOrGenerateDefaultDataCache()
     }
 
     private static _i: CacheDataManager | null = null;
 
-    public static get i():CacheDataManager {
+    public static get i(): CacheDataManager {
         return CacheDataManager._i;
     }
 
@@ -57,13 +57,15 @@ export class CacheDataManager {
     }
 
     public async saveAllData(cacheData: CacheData): Promise<void> {
-        // const currCacheData: CacheData = {
-        //     settings: this.settings,
-        //     fields_by_template_name: this.plugin.fieldNamesByTemplateName,
-        //     file_hashes_by_path: this.plugin.fileHashesByPath,
-        //     persisted_attachment_links_by_id: this.plugin.persistedAttachmentLinkByGeneratedId
-        // }
         await this.plugin.saveData(cacheData);
+    }
+
+    public async loadOrGenerateDefaultDataCache() {
+        const cache: CacheData = await this.plugin.loadData();
+        if (!cache) {
+            return await this.saveDefaultCacheData()
+        }
+        return cache
     }
 
     public async saveDefaultCacheData(): Promise<CacheData> {

@@ -36,9 +36,10 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
         try {
             this.settingsManager = SettingsManager.createSingletonInstance(this)
+            this.cacheDataManager = CacheDataManager.createSingletonInstance(this)
+            this.cacheData = this.cacheDataManager.cacheData
+            this.settings = this.cacheData.settings
 
-            this.settings = await SettingsManager.i.loadSettingsOrGenerateDefault();
-            debug({API_TOKEN: this.settings.API_TOKEN});
             const basicAuthToken = generateBasicAuthToken(this.settings.API_TOKEN);
             this.setBasicAuthHeader(basicAuthToken)
             this.cacheDataManager = CacheDataManager.createSingletonInstance(this)
