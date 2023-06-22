@@ -78,7 +78,7 @@ abstract class AbstractCardainerFile {
     path: string
     url: string
     originalContents: string
-    data: CachedMetadata
+    settingsData: CardainerFileSettingsData
     tFileCache: CachedMetadata
 
     frozenFieldDict: FROZEN_FIELDS_DICT
@@ -91,41 +91,41 @@ abstract class AbstractCardainerFile {
 
     idIndexes: number[]
     allTypeMochiCardsToAdd: MochiCard[] = []
-
+    allMochiCards:MochiCard[]=[]
     mochiCardIds: Array<string | null> = []
     cardIds: number[]
     ankiTags: string[]
 
     formatter: FormatConverter
 
-    constructor(file_contents: string, path: string, url: string, data: CachedMetadata, file_cache: CachedMetadata) {
-        this.data = data
+    constructor(file_contents: string, path: string, url: string, data: CardainerFileSettingsData, file_cache: CachedMetadata) {
+        this.settingsData = data
         this.contents = file_contents
         this.path = path
         this.url = url
         this.originalContents = this.contents
         this.tFileCache = file_cache
-        this.formatter = new FormatConverter(file_cache, this.data.vaultName)
+        this.formatter = new FormatConverter(file_cache, this.settingsData.vaultName)
     }
 
     setup_frozen_fields_dict() {
         let frozen_fields_dict: FROZEN_FIELDS_DICT = {}
-        for (let note_type in this.data.fieldsDict) {
-            let fields: string[] = this.data.fieldsDict[note_type]
+        for (let note_type in this.settingsData.fieldsDict) {
+            let fields: string[] = this.settingsData.fieldsDict[note_type]
             let temp_dict: Record<string, string> = {}
             for (let field of fields) {
                 temp_dict[field] = ""
             }
             frozen_fields_dict[note_type] = temp_dict
         }
-        for (let match of this.contents.matchAll(this.data.FROZEN_REGEXP)) {
+        for (let match of this.contents.matchAll(this.settingsData.FROZEN_REGEXP)) {
             const [note_type, fields]: [string, string] = [match[1], match[2]]
             const virtual_note = note_type + "\n" + fields
             const parsed_fields: Record<string, string> = new BeginEndCard(
                 virtual_note,
-                this.data.fieldsDict,
-                this.data.isCurlyCloze,
-                this.data.isHighlightsToCloze,
+                this.settingsData.fieldsDict,
+                this.settingsData.isCurlyCloze,
+                this.settingsData.isHighlightsToCloze,
                 this.formatter
             ).getCardFieldContentByFieldNameDict()
             frozen_fields_dict[note_type] = parsed_fields
@@ -134,23 +134,19 @@ abstract class AbstractCardainerFile {
     }
 
     setup_target_deck() {
-        const result = this.contents.match(this.data.DECK_REGEXP)
-        this.targetDeckName = result ? result[1] : this.data.defaultDeckName
+        const result = this.contents.match(this.settingsData.DECK_REGEXP)
+        this.targetDeckName = result ? result[1] : this.settingsData.defaultDeckName
     }
 
     setup_global_tags() {
-        const result = this.contents.match(this.data.TAG_REGEXP)
+        const result = this.contents.match(this.settingsData.TAG_REGEXP)
         this.globalTags = result ? result[1] : ""
-    }
-
-    getHash(): string {
-        return Md5.hashStr(this.contents) as string
     }
 
     abstract scanFileForCardsCRUD(): void
 
     scanCardDeletions() {
-        for (let match of this.contents.matchAll(this.data.DELETE_REGEXP)) {
+        for (let match of this.contents.matchAll(this.settingsData.DELETE_REGEXP)) {
             const mochiCardId = match[1]
             this.mochiCardIdsToDelete.push(mochiCardId)
             ArrayUtil.removeArrayItem(
@@ -194,7 +190,7 @@ abstract class AbstractCardainerFile {
     abstract writeIDs(): void
 
     performDelete() {
-        this.contents = this.contents.replace(this.data.DELETE_REGEXP, "")
+        this.contents = this.contents.replace(this.settingsData.DELETE_REGEXP, "")
     }
 
 }
@@ -214,17 +210,17 @@ export class CardainerFile extends AbstractCardainerFile {
 
     add_spans_to_ignore() {
         this.ignoreSpans = []
-        this.ignoreSpans.push(...spans(this.data.FROZEN_REGEXP, this.contents))
-        const deck_result = this.contents.match(this.data.DECK_REGEXP)
+        this.ignoreSpans.push(...spans(this.settingsData.FROZEN_REGEXP, this.contents))
+        const deck_result = this.contents.match(this.settingsData.DECK_REGEXP)
         if (deck_result) {
             this.ignoreSpans.push([deck_result.index, deck_result.index + deck_result[0].length])
         }
-        const tag_result = this.contents.match(this.data.TAG_REGEXP)
+        const tag_result = this.contents.match(this.settingsData.TAG_REGEXP)
         if (tag_result) {
             this.ignoreSpans.push([tag_result.index, tag_result.index + tag_result[0].length])
         }
-        this.ignoreSpans.push(...spans(this.data.BEGIN_END_CARD, this.contents))
-        this.ignoreSpans.push(...spans(this.data.INLINE_REGEXP, this.contents))
+        this.ignoreSpans.push(...spans(this.settingsData.BEGIN_END_CARD, this.contents))
+        this.ignoreSpans.push(...spans(this.settingsData.INLINE_REGEXP, this.contents))
         this.ignoreSpans.push(...spans(c.OBS_INLINE_MATH_REGEXP, this.contents))
         this.ignoreSpans.push(...spans(c.OBS_DISPLAY_MATH_REGEXP, this.contents))
         this.ignoreSpans.push(...spans(c.OBS_CODE_REGEXP, this.contents))
@@ -248,21 +244,21 @@ export class CardainerFile extends AbstractCardainerFile {
 
 
     scanBeginEndCards() {
-        for (let card_match of this.contents.matchAll(this.data.BEGIN_END_CARD)) {
+        for (let card_match of this.contents.matchAll(this.settingsData.BEGIN_END_CARD)) {
             // That second thing essentially gets the index of the end of the first capture group.
             let [cardContent, position]: [string, number] = [card_match[1], card_match.index + card_match[0].indexOf(card_match[1]) + card_match[1].length]
-            let mochiCard: MochiCard|null = new BeginEndCard(
+            let mochiCard: MochiCard | null = new BeginEndCard(
                 cardContent,
-                this.data.fieldsDict,
-                this.data.isCurlyCloze,
-                this.data.isHighlightsToCloze,
+                this.settingsData.fieldsDict,
+                this.settingsData.isCurlyCloze,
+                this.settingsData.isHighlightsToCloze,
                 this.formatter
             ).parseToMochiCard(
                 this.targetDeckName,
                 this.url,
                 this.frozenFieldDict,
-                this.data,
-                this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(card_match.index) : ""
+                this.settingsData,
+                this.settingsData.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(card_match.index) : ""
             )
             if (!mochiCard) {
                 continue
@@ -272,7 +268,7 @@ export class CardainerFile extends AbstractCardainerFile {
                 mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
                 this.mochiCardsToAdd.push(mochiCard)
                 this.idIndexes.push(position)
-            } else if (!this.data.existingMochiCardIds.includes(mochiCard.id)) {
+            } else if (!this.settingsData.existingMochiCardIds.includes(mochiCard.id)) {
                 if (mochiCard.id == CLOZE_ERROR) {
                     continue
                 }
@@ -282,28 +278,28 @@ export class CardainerFile extends AbstractCardainerFile {
                 } else {
                     console.warn("Note with id", mochiCard.id, " in file ", this.path, " does not exist in Anki!")
                 }
-            } else {
+            } else if (mochiCard.runtimeProps.originalHash !== mochiCard.runtimeProps.currentHash) {
                 this.mochiCardsToEdit.push(mochiCard)
             }
         }
     }
 
     scanInlineCards() {
-        for (let note_match of this.contents.matchAll(this.data.INLINE_REGEXP)) {
+        for (let note_match of this.contents.matchAll(this.settingsData.INLINE_REGEXP)) {
             let [note, position]: [string, number] = [note_match[1], note_match.index + note_match[0].indexOf(note_match[1]) + note_match[1].length]
             // That second thing essentially gets the index of the end of the first capture group.
-            let mochiCard:MochiCard|null = new InlineCard(
+            let mochiCard: MochiCard | null = new InlineCard(
                 note,
-                this.data.fieldsDict,
-                this.data.isCurlyCloze,
-                this.data.isHighlightsToCloze,
+                this.settingsData.fieldsDict,
+                this.settingsData.isCurlyCloze,
+                this.settingsData.isHighlightsToCloze,
                 this.formatter
             ).parseToMochiCard(
                 this.targetDeckName,
                 this.url,
                 this.frozenFieldDict,
-                this.data,
-                this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(note_match.index) : ""
+                this.settingsData,
+                this.settingsData.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(note_match.index) : ""
             )
             if (!mochiCard) {
                 continue
@@ -313,7 +309,7 @@ export class CardainerFile extends AbstractCardainerFile {
                 mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
                 this.inlineCardsToAdd.push(mochiCard)
                 this.inlineIdIndexes.push(position)
-            } else if (!this.data.existingMochiCardIds.includes(mochiCard.id)) {
+            } else if (!this.settingsData.existingMochiCardIds.includes(mochiCard.id)) {
                 // Need to show an error
                 if (mochiCard.id == CLOZE_ERROR) {
                     continue
@@ -339,20 +335,20 @@ export class CardainerFile extends AbstractCardainerFile {
                 for (let match of findMatchNotIgnored(regexp, this.contents, this.ignoreSpans)) {
                     this.ignoreSpans.push([match.index, match.index + match[0].length])
                     const mochiCard: MochiCard | null = new RegexCard(
-                        match, cardTemplateName, this.data.fieldsDict,
-                        search_tags, search_id, this.data.isCurlyCloze, this.data.isHighlightsToCloze, this.formatter
+                        match, cardTemplateName, this.settingsData.fieldsDict,
+                        search_tags, search_id, this.settingsData.isCurlyCloze, this.settingsData.isHighlightsToCloze, this.formatter
                     ).parseToMochiCard(
                         this.targetDeckName,
                         this.url,
                         this.frozenFieldDict,
-                        this.data,
-                        this.data.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(match.index) : ""
+                        this.settingsData,
+                        this.settingsData.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(match.index) : ""
                     )
                     if (!mochiCard) {
                         break;
                     }
                     if (search_id) {
-                        if (!(this.data.existingMochiCardIds.includes(mochiCard.id))) {
+                        if (!(this.settingsData.existingMochiCardIds.includes(mochiCard.id))) {
                             if (mochiCard.id == CLOZE_ERROR) {
                                 // This means it wasn't actually a card! So we should remove it from ignore_spans
                                 this.ignoreSpans.pop()
@@ -404,7 +400,7 @@ export class CardainerFile extends AbstractCardainerFile {
             (id_position: number, index: number) => {
                 const identifier: string | null = this.mochiCardIds[index]
                 if (identifier) {
-                    normal_inserts.push([id_position, mochiCardIdToCardIdentifierToken(identifier, false, this.data.comment)])
+                    normal_inserts.push([id_position, mochiCardIdToCardIdentifierToken(identifier, false, this.settingsData.comment)])
                 }
             }
         )
@@ -413,7 +409,7 @@ export class CardainerFile extends AbstractCardainerFile {
             (id_position: number, index: number) => {
                 const identifier: string | null = this.mochiCardIds[index + this.mochiCardsToAdd.length] //Since regular then inline
                 if (identifier) {
-                    inline_inserts.push([id_position, mochiCardIdToCardIdentifierToken(identifier, true, this.data.comment)])
+                    inline_inserts.push([id_position, mochiCardIdToCardIdentifierToken(identifier, true, this.settingsData.comment)])
                 }
             }
         )
@@ -423,7 +419,7 @@ export class CardainerFile extends AbstractCardainerFile {
             (id_position: number, index: number) => {
                 const identifier: string | null = this.mochiCardIds[index + this.mochiCardsToAdd.length + this.inlineCardsToAdd.length] // Since regular then inline then regex
                 if (identifier) {
-                    regex_inserts.push([id_position, "\n" + mochiCardIdToCardIdentifierToken(identifier, false, this.data.comment)])
+                    regex_inserts.push([id_position, "\n" + mochiCardIdToCardIdentifierToken(identifier, false, this.settingsData.comment)])
                 }
             }
         )

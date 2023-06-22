@@ -19,9 +19,6 @@ axios.defaults.headers.common["Accept"] = "application/json";
 export default class ObsidianToMochiPlugin extends Plugin {
     settings: PluginSettings;
     mochiTemplateNames: Array<string> = [];
-    fieldNamesByTemplateName: Record<string, string[]> = {};
-    persistedAttachmentLinkByGeneratedId: Record<string, string> = {};
-    fileHashesByPath: Record<string, string> = {};
     scheduleId: any;
     settingsManager: SettingsManager;
     cacheDataManager: CacheDataManager
@@ -87,31 +84,32 @@ export default class ObsidianToMochiPlugin extends Plugin {
             await pluginSettingsToCardainerFileSettings(
                 this.app,
                 this.settings,
-                this.fieldNamesByTemplateName
+                this.cacheData.field_names_by_template_name
             );
         const manager = FileManager.createSingletonInstance(
             this.app,
             cardainerFileSettingsData,
             this.app.vault.getMarkdownFiles(),
-            this.fileHashesByPath,
-            this.persistedAttachmentLinkByGeneratedId
+            this.cacheData.file_hashes_by_path,
+            this.cacheData.persisted_attachment_links_by_id
         );
         await manager.detectFilesChanges();
         await manager.createAttachmentsForMochiCards();
         debug({after_file_changes_detect_manager: manager});
 
         await MochiSyncService.syncFileManagerWithRemote(manager);
-        await MochiSyncService.syncChangesToCardsFiles(manager);
+        await MochiSyncService.syncChangesToCardainerFiles(manager);
 
         // await manager.requests_1()
-        this.cacheDataManager.cacheData.persisted_attachment_links_by_id =
+        this.cacheData.persisted_attachment_links_by_id =
             manager.persistedAttachmentLinkByGeneratedId;
 
         const hashes = manager.getFileHashes();
         for (let key in hashes) {
             this.cacheDataManager.cacheData.file_hashes_by_path[key] = hashes[key];
         }
-        new Notice("All done! Saving file hashes and added media now...");
+        this.cacheData.card_hashes_by_id = MochiSyncService.getMochiCardHashesById()
+        new Notice("All done! Saving cache data");
         await this.cacheDataManager.saveAllData(this.cacheData);
     }
 

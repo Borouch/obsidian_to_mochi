@@ -48,7 +48,8 @@ export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCar
             createdAt: {
                 date: dto["created-at"].date
             },
-            templateId: dto["template-id"]
+            templateId: dto["template-id"],
+            runtimeProps:{}
         };
     }
 

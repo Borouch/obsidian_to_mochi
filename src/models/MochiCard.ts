@@ -6,6 +6,8 @@ export interface MochiCardField {
     value: string;
 }
 export interface TempMochiParams {
+    originalHash?:string,
+    currentHash?:string,
     deckName?: string,
     attachmentLinkByGeneratedId?:Record<string,string>
 }

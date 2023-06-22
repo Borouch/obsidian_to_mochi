@@ -5,6 +5,7 @@ import {CardainerFile} from "./CardainerFile";
 import {MochiAttachment} from "@src/models/MochiAttachment";
 import * as mime from "mime-types";
 import {debug} from "@src/utils/Logger";
+import {getHash} from "@src/Helpers";
 
 function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
     let _difference = new Set(setA);
@@ -41,7 +42,7 @@ export class FileManager {
     app: App;
     data: CardainerFileSettingsData;
     tFiles: TFile[];
-    cardsFiles: Array<CardainerFile>;
+    cardainerFiles: Array<CardainerFile>;
     tFileHashes: Record<string, string>;
     requests_1_result: any;
     pendingAttachmentLinkByGeneratedId: Record<string, string> = {};
@@ -57,7 +58,7 @@ export class FileManager {
         this.app = app;
         this.data = data;
         this.tFiles = tFiles;
-        this.cardsFiles = [];
+        this.cardainerFiles = [];
         this.tFileHashes = file_hashes;
         this.persistedAttachmentLinkByGeneratedId =
             addedAttachmentLinkByGeneratedId;
@@ -154,7 +155,7 @@ export class FileManager {
             const content: string = await this.app.vault.read(file);
             const cache: CachedMetadata = this.app.metadataCache.getCache(file.path);
             const file_data = this.dataToCardsFileSettingsData(file);
-            this.cardsFiles.push(
+            this.cardainerFiles.push(
                 new CardainerFile(
                     content,
                     file.path,
@@ -170,29 +171,29 @@ export class FileManager {
         await this.genCardsFiles();
         let changedCardFiles: Array<CardainerFile> = [];
         let changedTFiles: TFile[] = [];
-        for (let index in this.cardsFiles) {
+        for (let index in this.cardainerFiles) {
             const i = parseInt(index);
-            let cardsFile = this.cardsFiles[i];
+            let cardainerFile = this.cardainerFiles[i];
             if (
                 !(
-                    this.tFileHashes.hasOwnProperty(cardsFile.path) &&
-                    cardsFile.getHash() === this.tFileHashes[cardsFile.path]
+                    this.tFileHashes.hasOwnProperty(cardainerFile.path) &&
+                    getHash(cardainerFile.contents) === this.tFileHashes[cardainerFile.path]
                 )
             ) {
                 //Indicates it's changed or new
-                console.info("Scanning ", cardsFile.path, "as it's changed or new.");
-                cardsFile.scanFileForCardsCRUD();
-                changedCardFiles.push(cardsFile);
+                console.info("Scanning ", cardainerFile.path, "as it's changed or new.");
+                cardainerFile.scanFileForCardsCRUD();
+                changedCardFiles.push(cardainerFile);
                 changedTFiles.push(this.tFiles[i]);
             }
         }
-        this.cardsFiles = changedCardFiles;
+        this.cardainerFiles = changedCardFiles;
         this.tFiles = changedTFiles;
     }
 
     // TODO: When attachment is renamed, you should also rename it in cache
     async createAttachmentsForMochiCards() {
-        for (let cardsFile of this.cardsFiles) {
+        for (let cardsFile of this.cardainerFiles) {
             for (const mochiCard of [
                 ...cardsFile.mochiCardsToEdit,
                 ...cardsFile.allTypeMochiCardsToAdd,
@@ -251,9 +252,11 @@ export class FileManager {
 
     getFileHashes(): Record<string, string> {
         let result: Record<string, string> = {};
-        for (let file of this.cardsFiles) {
-            result[file.path] = file.getHash();
+        for (let file of this.cardainerFiles) {
+            result[file.path] = getHash(file.contents);
         }
         return result;
     }
+
+
 }

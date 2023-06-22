@@ -9,6 +9,9 @@ import {
     findMochiTemplateFromName,
     makeMochiCardFieldById
 } from "@src/models/MochiTemplate";
+import {CacheDataManager} from "@src/utils/CacheDataManager";
+import {Md5} from "ts-md5";
+import {getHash} from "@src/Helpers";
 
 export abstract class AbstractCard {
     content: string;
@@ -25,7 +28,7 @@ export abstract class AbstractCard {
     curlyCloze: boolean;
     highlightsToCloze: boolean;
     noMochiTemplateType: boolean;
-    mochiAttachmentLinksById : Record<string, string>={}
+    mochiAttachmentLinksById: Record<string, string> = {}
 
     constructor(
         cardContent: string,
@@ -61,9 +64,11 @@ export abstract class AbstractCard {
     abstract getCardTemplateName(): string;
 
     abstract getCardFieldContentByFieldNameDict(): Record<string, string>;
+
     getContentLines(): string[] {
         return this.content.split(" ")
     }
+
     parseToMochiCard(
         deckName: string,
         url: string,
@@ -77,7 +82,7 @@ export abstract class AbstractCard {
         }
 
         const mochiTemplate = findMochiTemplateFromName(this.cardTemplateName);
-        if(!mochiTemplate) return null
+        if (!mochiTemplate) return null
         const mochiCardFieldById = makeMochiCardFieldById(
             this.getCardFieldContentByFieldNameDict(),
             mochiTemplate
@@ -86,12 +91,18 @@ export abstract class AbstractCard {
         const mochiCard: MochiCard = {
             id: this.identifier,
             tags: this.tags,
-            runtimeProps: {deckName: deckName, attachmentLinkByGeneratedId: this.mochiAttachmentLinksById},
+            runtimeProps: {
+                deckName: deckName,
+                attachmentLinkByGeneratedId: this.mochiAttachmentLinksById,
+                originalHash: CacheDataManager.i.cacheData.card_hashes_by_id[this.identifier],
+                currentHash: ''
+            },
             template: mochiTemplate,
             templateId: mochiTemplate.id,
             fieldById: mochiCardFieldById,
             deckId: null,
             content: "",
+
         };
 
         if (url) {
@@ -145,7 +156,7 @@ export abstract class AbstractCard {
         mochiCard.content = MochiSyncService.makeContentFromMochiFields(
             mochiCard.fieldById
         );
-
+        mochiCard.runtimeProps.currentHash = getHash(mochiCard.content)
         return mochiCard
     }
 }

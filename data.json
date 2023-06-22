@@ -44,8 +44,12 @@
       "Add Obsidian Tags": false
     }
   },
-  "card_hashes_by_id": {},
-  "persisted_attachment_links_by_id": {},
+  "card_hashes_by_id": {
+    "V9uy1f8Z": "98be5dd814c0ee20f4d525e5a921d9f7"
+  },
+  "persisted_attachment_links_by_id": {
+    "Pasted image 20230617144621.png": "fq1V812EkNg004yg.png"
+  },
   "field_names_by_template_name": {
     "Basic (type in the answer)": [
       "Front",
@@ -92,5 +96,10 @@
       "Back"
     ]
   },
-  "file_hashes_by_path": {}
+  "file_hashes_by_path": {
+    "templater/SR token.md": "2af7c4ac3686c7b7373b9984dbcc3775",
+    "SR.md": "ad9679da142ed834f41b49b024d326c1",
+    "Spaced repetition dashboard.md": "d41d8cd98f00b204e9800998ecf8427e",
+    "Attachment handler concerns.md": "b029e0956214ec34ca7c49b60f1ff052"
+  }
 }
