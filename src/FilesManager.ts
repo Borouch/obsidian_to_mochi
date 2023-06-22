@@ -70,22 +70,22 @@ export class FileManager {
         return FileManager._instance;
     }
 
-    public static createSingletonInstance(
+    public static createSingletonInstanceReplacement(
         app: App,
         data: CardainerFileSettingsData,
         tFiles: TFile[],
         file_hashes: Record<string, string>,
         addedAttachmentLinkByGeneratedId: Record<string, string>
     ): FileManager {
-        if (!FileManager._instance) {
-            FileManager._instance = new FileManager(
-                app,
-                data,
-                tFiles,
-                file_hashes,
-                addedAttachmentLinkByGeneratedId
-            );
-        }
+
+        FileManager._instance = new FileManager(
+            app,
+            data,
+            tFiles,
+            file_hashes,
+            addedAttachmentLinkByGeneratedId
+        );
+
 
         return FileManager._instance;
     }

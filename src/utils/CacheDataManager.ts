@@ -17,18 +17,20 @@ export class CacheDataManager {
         return CacheDataManager._i;
     }
 
-    public static createSingletonInstance(
+    public static createSingletonInstanceReplacement(
         plugin: ObsidianToMochiPlugin
     ): CacheDataManager {
-        if (!CacheDataManager._i) {
-            CacheDataManager._i = new CacheDataManager(plugin);
-        }
+
+        CacheDataManager._i = new CacheDataManager(plugin);
+
 
         return CacheDataManager._i;
     }
 
     public async init() {
         this.cacheData = await this.loadOrGenerateDefaultDataCache()
+        this.plugin.settings = this.cacheData.settings
+        this.plugin.cacheData = this.cacheData
         return this
     }
 

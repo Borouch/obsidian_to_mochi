@@ -16,12 +16,10 @@ export class SettingsManager {
     public static createSingletonInstance(
         plugin: ObsidianToMochiPlugin,
     ): SettingsManager {
-        if (!SettingsManager._i) {
-            SettingsManager._i = new SettingsManager(
-                plugin
-            );
-        }
 
+        SettingsManager._i = new SettingsManager(
+            plugin
+        );
         return SettingsManager._i;
     }
 

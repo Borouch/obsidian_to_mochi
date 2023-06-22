@@ -33,9 +33,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
         this.settingsManager = SettingsManager.createSingletonInstance(this);
 
-        this.cacheDataManager = await CacheDataManager.createSingletonInstance(this).init();
-        this.cacheData = this.cacheDataManager.cacheData
-        this.settings = this.cacheData.settings;
+        this.cacheDataManager = await CacheDataManager.createSingletonInstanceReplacement(this).init();
 
         if (this.settings.API_TOKEN) {
             const basicAuthToken = generateBasicAuthToken(this.settings.API_TOKEN);
@@ -71,46 +69,51 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
 
     async scanVault() {
-        if (!this.settings.API_TOKEN) {
-            new Notice("Provide Mochi API key in order to start sync...");
+        try {
 
-            return;
-        }
-        new Notice("Scanning vault, check console for details...");
+            if (!this.settings.API_TOKEN) {
+                new Notice("Provide Mochi API key in order to start sync...");
 
-        MochiSyncService.mochiCards = await MochiCardService.indexCards();
+                return;
+            }
+            new Notice("Scanning vault, check console for details...");
 
-        const cardainerFileSettingsData: CardainerFileSettingsData =
-            await pluginSettingsToCardainerFileSettings(
+            MochiSyncService.mochiCards = await MochiCardService.indexCards();
+
+            const cardainerFileSettingsData: CardainerFileSettingsData =
+                await pluginSettingsToCardainerFileSettings(
+                    this.app,
+                    this.settings,
+                    this.cacheData.field_names_by_template_name
+                );
+            const manager = FileManager.createSingletonInstanceReplacement(
                 this.app,
-                this.settings,
-                this.cacheData.field_names_by_template_name
+                cardainerFileSettingsData,
+                this.app.vault.getMarkdownFiles(),
+                this.cacheData.file_hashes_by_path,
+                this.cacheData.persisted_attachment_links_by_id
             );
-        const manager = FileManager.createSingletonInstance(
-            this.app,
-            cardainerFileSettingsData,
-            this.app.vault.getMarkdownFiles(),
-            this.cacheData.file_hashes_by_path,
-            this.cacheData.persisted_attachment_links_by_id
-        );
-        await manager.detectFilesChanges();
-        await manager.createAttachmentsForMochiCards();
-        debug({after_file_changes_detect_manager: manager});
+            await manager.detectFilesChanges();
+            await manager.createAttachmentsForMochiCards();
+            debug({after_file_changes_detect_manager: manager});
 
-        await MochiSyncService.syncFileManagerWithRemote(manager);
-        await MochiSyncService.syncChangesToCardainerFiles(manager);
+            await MochiSyncService.syncFileManagerWithRemote(manager);
+            await MochiSyncService.syncChangesToCardainerFiles(manager);
 
-        // await manager.requests_1()
-        this.cacheData.persisted_attachment_links_by_id =
-            manager.persistedAttachmentLinkByGeneratedId;
+            // await manager.requests_1()
+            this.cacheData.persisted_attachment_links_by_id =
+                manager.persistedAttachmentLinkByGeneratedId;
 
-        const hashes = manager.getFileHashes();
-        for (let key in hashes) {
-            this.cacheDataManager.cacheData.file_hashes_by_path[key] = hashes[key];
+            const hashes = manager.getFileHashes();
+            for (let key in hashes) {
+                this.cacheDataManager.cacheData.file_hashes_by_path[key] = hashes[key];
+            }
+            this.cacheData.card_hashes_by_id = MochiSyncService.getMochiCardHashesById()
+            new Notice("All done! Saving cache data");
+            await this.cacheDataManager.saveAllData(this.cacheData);
+        } catch (e) {
+            new Notice('Something went wrong! Check console for details')
         }
-        this.cacheData.card_hashes_by_id = MochiSyncService.getMochiCardHashesById()
-        new Notice("All done! Saving cache data");
-        await this.cacheDataManager.saveAllData(this.cacheData);
     }
 
     setBasicAuthHeader(basicAuthToken: string) {
