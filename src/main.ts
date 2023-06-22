@@ -76,6 +76,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
                 return;
             }
+
             new Notice("Scanning vault, check console for details...");
 
             MochiSyncService.mochiCards = await MochiCardService.indexCards();

@@ -1,4 +1,4 @@
-import {FIELDS_DICT} from "@src/interfaces/IField";
+import {FIELDS_BY_TEMPALTE_NAME} from "@src/interfaces/IField";
 
 export interface PluginSettings {
     API_TOKEN: string
@@ -33,7 +33,7 @@ export interface PluginSettings {
 export interface CardainerFileSettingsData {
     //All the data that a file would need.
 
-    fieldsDict: FIELDS_DICT
+    fieldsByTemplateName: FIELDS_BY_TEMPALTE_NAME
     customRegexps: Record<string, string>
     fileLinkFieldsByCardTemplateName: Record<string, string>
     contextFieldByCardTemplateName: Record<string, string>

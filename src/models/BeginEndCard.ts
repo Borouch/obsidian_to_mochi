@@ -5,6 +5,8 @@ Does NOT deal with finding the note in the file.*/
 
 import {AbstractCard} from "@src/models/AbstractCard";
 import {MochiCard} from "@src/models/MochiCard";
+import {FIELDS_BY_TEMPALTE_NAME} from "@src/interfaces/IField";
+import {FormatConverter} from "@src/utils/FormatConverter";
 
 
 export const TAG_PREFIX: string = "Tags: "
@@ -34,6 +36,18 @@ export function mochiCardHasClozes(mochiCard: MochiCard): boolean {
 
 export class BeginEndCard extends AbstractCard {
 
+    constructor(cardContent: string,
+                fieldsByTemplateName: FIELDS_BY_TEMPALTE_NAME,
+                curlyCloze: boolean,
+                highlightsToCloze: boolean,
+                formatter: FormatConverter,) {
+        super();
+        this.init(cardContent,
+            fieldsByTemplateName,
+            curlyCloze,
+            highlightsToCloze,
+            formatter)
+    }
 
     getIdentifier(): string | null {
         if (this.ID_REGEXP.test(this.contentLines[this.contentLines.length - 1])) {

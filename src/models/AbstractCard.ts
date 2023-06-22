@@ -1,5 +1,5 @@
 import {FormatConverter} from "@src/utils/FormatConverter";
-import {FIELDS_DICT, FROZEN_FIELDS_DICT} from "@src/interfaces/IField";
+import {FIELDS_BY_TEMPALTE_NAME, FROZEN_FIELDS_DICT} from "@src/interfaces/IField";
 import {CardainerFileSettingsData} from "@src/interfaces/ISettings";
 import {CLOZE_ERROR, mochiCardHasClozes, NOTE_TYPE_ERROR, OBS_TAG_REGEXP} from "@src/models/BeginEndCard";
 import {MochiSyncService} from "@src/services/MochiSyncService";
@@ -10,7 +10,6 @@ import {
     makeMochiCardFieldById
 } from "@src/models/MochiTemplate";
 import {CacheDataManager} from "@src/utils/CacheDataManager";
-import {Md5} from "ts-md5";
 import {getHash} from "@src/Helpers";
 
 export abstract class AbstractCard {
@@ -27,35 +26,8 @@ export abstract class AbstractCard {
     formatter: FormatConverter;
     curlyCloze: boolean;
     highlightsToCloze: boolean;
-    noMochiTemplateType: boolean;
+    mochiTemplateNameNotFound: boolean;
     mochiAttachmentLinksById: Record<string, string> = {}
-
-    constructor(
-        cardContent: string,
-        fieldsDict: FIELDS_DICT,
-        curlyCloze: boolean,
-        highlightsToCloze: boolean,
-        formatter: FormatConverter
-    ) {
-        this.content = cardContent.trim();
-        this.current_field_num = 0;
-        this.delete = false;
-        this.noMochiTemplateType = false;
-        this.contentLines = this.getContentLines();
-        this.identifier = this.getIdentifier();
-        this.tags = this.getTags();
-        this.cardTemplateName = this.getCardTemplateName();
-        if (!fieldsDict.hasOwnProperty(this.cardTemplateName)) {
-            this.noMochiTemplateType = true;
-            return;
-        }
-        this.fieldNames = fieldsDict[this.cardTemplateName];
-        this.currentField = this.fieldNames[0];
-        this.formatter = formatter;
-        this.curlyCloze = curlyCloze;
-        this.highlightsToCloze = highlightsToCloze;
-    }
-
 
     abstract getIdentifier(): string | null;
 
@@ -77,7 +49,7 @@ export abstract class AbstractCard {
         cardContextBreadcrumbText: string
     ): MochiCard | null {
 
-        if (this.noMochiTemplateType) {
+        if (this.mochiTemplateNameNotFound) {
             this.identifier = NOTE_TYPE_ERROR
         }
 
@@ -158,5 +130,33 @@ export abstract class AbstractCard {
         );
         mochiCard.runtimeProps.currentHash = getHash(mochiCard.content)
         return mochiCard
+    }
+
+    // We do this in separate method instead of constructor because base class initialization depends on derived class props
+    protected init(cardContent: string,
+                   fieldsByTemplateName: FIELDS_BY_TEMPALTE_NAME,
+                   curlyCloze: boolean,
+                   highlightsToCloze: boolean,
+                   formatter: FormatConverter,) {
+        this.content = cardContent.trim();
+        this.current_field_num = 0;
+        this.delete = false;
+        this.mochiTemplateNameNotFound = false;
+        this.contentLines = this.getContentLines();
+        this.formatter = formatter;
+        this.curlyCloze = curlyCloze;
+        this.highlightsToCloze = highlightsToCloze;
+        this.identifier = this.getIdentifier();
+        this.tags = this.getTags();
+        this.cardTemplateName = this.getCardTemplateName();
+        if (!fieldsByTemplateName.hasOwnProperty(this.cardTemplateName)) {
+            debugger
+            this.mochiTemplateNameNotFound = true;
+            return;
+        }
+        this.fieldNames = fieldsByTemplateName[this.cardTemplateName];
+        this.currentField = this.fieldNames[0];
+
+        return this
     }
 }

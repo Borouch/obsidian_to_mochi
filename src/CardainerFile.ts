@@ -2,7 +2,6 @@
 
 import {FROZEN_FIELDS_DICT} from './interfaces/IField'
 import {BeginEndCard, CLOZE_ERROR, ID_REGEXP_STR, NOTE_TYPE_ERROR, TAG_REGEXP_STR, TAG_SEP} from './models/BeginEndCard'
-import {Md5} from 'ts-md5/dist/md5';
 import * as c from './Constants'
 import {FormatConverter} from './utils/FormatConverter'
 import {CachedMetadata, HeadingCache} from 'obsidian'
@@ -65,6 +64,7 @@ function containedInSpan(span: [number, number], spans: Array<[number, number]>)
 
 function* findMatchNotIgnored(pattern: RegExp, text: string, ignore_spans: Array<[number, number]>): IterableIterator<RegExpMatchArray> {
     let matches = text.matchAll(pattern)
+    debugger
     for (let match of matches) {
         const matchSpan: [number, number] = [match.index, match.index + match[0].length]
         if (!(containedInSpan(matchSpan, ignore_spans))) {
@@ -91,7 +91,7 @@ abstract class AbstractCardainerFile {
 
     idIndexes: number[]
     allTypeMochiCardsToAdd: MochiCard[] = []
-    allMochiCards:MochiCard[]=[]
+    allMochiCards: MochiCard[] = []
     mochiCardIds: Array<string | null> = []
     cardIds: number[]
     ankiTags: string[]
@@ -110,8 +110,8 @@ abstract class AbstractCardainerFile {
 
     setup_frozen_fields_dict() {
         let frozen_fields_dict: FROZEN_FIELDS_DICT = {}
-        for (let note_type in this.settingsData.fieldsDict) {
-            let fields: string[] = this.settingsData.fieldsDict[note_type]
+        for (let note_type in this.settingsData.fieldsByTemplateName) {
+            let fields: string[] = this.settingsData.fieldsByTemplateName[note_type]
             let temp_dict: Record<string, string> = {}
             for (let field of fields) {
                 temp_dict[field] = ""
@@ -121,14 +121,13 @@ abstract class AbstractCardainerFile {
         for (let match of this.contents.matchAll(this.settingsData.FROZEN_REGEXP)) {
             const [note_type, fields]: [string, string] = [match[1], match[2]]
             const virtual_note = note_type + "\n" + fields
-            const parsed_fields: Record<string, string> = new BeginEndCard(
-                virtual_note,
-                this.settingsData.fieldsDict,
+            const beginEndCard: Record<string, string> = new BeginEndCard(
+                virtual_note, this.settingsData.fieldsByTemplateName,
                 this.settingsData.isCurlyCloze,
                 this.settingsData.isHighlightsToCloze,
                 this.formatter
             ).getCardFieldContentByFieldNameDict()
-            frozen_fields_dict[note_type] = parsed_fields
+            frozen_fields_dict[note_type] = beginEndCard
         }
         this.frozenFieldDict = frozen_fields_dict
     }
@@ -248,8 +247,7 @@ export class CardainerFile extends AbstractCardainerFile {
             // That second thing essentially gets the index of the end of the first capture group.
             let [cardContent, position]: [string, number] = [card_match[1], card_match.index + card_match[0].indexOf(card_match[1]) + card_match[1].length]
             let mochiCard: MochiCard | null = new BeginEndCard(
-                cardContent,
-                this.settingsData.fieldsDict,
+                cardContent,this.settingsData.fieldsByTemplateName,
                 this.settingsData.isCurlyCloze,
                 this.settingsData.isHighlightsToCloze,
                 this.formatter
@@ -289,8 +287,7 @@ export class CardainerFile extends AbstractCardainerFile {
             let [note, position]: [string, number] = [note_match[1], note_match.index + note_match[0].indexOf(note_match[1]) + note_match[1].length]
             // That second thing essentially gets the index of the end of the first capture group.
             let mochiCard: MochiCard | null = new InlineCard(
-                note,
-                this.settingsData.fieldsDict,
+                note, this.settingsData.fieldsByTemplateName,
                 this.settingsData.isCurlyCloze,
                 this.settingsData.isHighlightsToCloze,
                 this.formatter
@@ -327,7 +324,6 @@ export class CardainerFile extends AbstractCardainerFile {
         //and adding any matches to ignore_spans.
 
         for (let search_id of [true, false]) {
-            debug({search_id})
             for (let search_tags of [true, false]) {
                 let id_str = search_id ? ID_REGEXP_STR : ""
                 let tag_str = search_tags ? TAG_REGEXP_STR : ""
@@ -335,7 +331,7 @@ export class CardainerFile extends AbstractCardainerFile {
                 for (let match of findMatchNotIgnored(regexp, this.contents, this.ignoreSpans)) {
                     this.ignoreSpans.push([match.index, match.index + match[0].length])
                     const mochiCard: MochiCard | null = new RegexCard(
-                        match, cardTemplateName, this.settingsData.fieldsDict,
+                        match, cardTemplateName, this.settingsData.fieldsByTemplateName,
                         search_tags, search_id, this.settingsData.isCurlyCloze, this.settingsData.isHighlightsToCloze, this.formatter
                     ).parseToMochiCard(
                         this.targetDeckName,
@@ -347,6 +343,7 @@ export class CardainerFile extends AbstractCardainerFile {
                     if (!mochiCard) {
                         break;
                     }
+                    debugger
                     if (search_id) {
                         if (!(this.settingsData.existingMochiCardIds.includes(mochiCard.id))) {
                             if (mochiCard.id == CLOZE_ERROR) {
@@ -355,7 +352,7 @@ export class CardainerFile extends AbstractCardainerFile {
                                 continue
                             }
                             console.warn("Note with id", mochiCard.id, " in file ", this.path, " does not exist in Anki!")
-                        } else {
+                        } else if (mochiCard.runtimeProps.originalHash !== mochiCard.runtimeProps.currentHash) {
                             this.mochiCardsToEdit.push(mochiCard)
                         }
                     } else {
@@ -383,6 +380,7 @@ export class CardainerFile extends AbstractCardainerFile {
         for (let cardTemplateName in this.customCardTypeRegexps) {
             const regexp_str: string = this.customCardTypeRegexps[cardTemplateName]
             if (regexp_str) {
+
                 this.searchContentRegexpMatchCards(cardTemplateName, regexp_str)
             }
         }

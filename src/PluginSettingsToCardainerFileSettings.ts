@@ -4,12 +4,12 @@ import {escapeRegex} from './Constants'
 import {CardainerFileSettingsData, PluginSettings} from "@src/interfaces/ISettings";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 
-export async function pluginSettingsToCardainerFileSettings(app: App, settings: PluginSettings, fieldsDict: Record<string, string[]>): Promise<CardainerFileSettingsData> {
+export async function pluginSettingsToCardainerFileSettings(app: App, settings: PluginSettings, fieldsByTemplateName: Record<string, string[]>): Promise<CardainerFileSettingsData> {
     let cardainerSettings: CardainerFileSettingsData = <CardainerFileSettingsData>{}
 
     //Some processing required
     cardainerSettings.vaultName = app.vault.getName()
-    cardainerSettings.fieldsDict = fieldsDict
+    cardainerSettings.fieldsByTemplateName = fieldsByTemplateName
     cardainerSettings.customRegexps = settings.CUSTOM_REGEXPS
     cardainerSettings.fileLinkFieldsByCardTemplateName = settings.FILE_LINK_FIELDS
     cardainerSettings.contextFieldByCardTemplateName = settings.CONTEXT_FIELDS

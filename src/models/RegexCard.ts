@@ -1,28 +1,10 @@
 import {FormatConverter} from "@src/utils/FormatConverter";
-import {FIELDS_DICT, FROZEN_FIELDS_DICT} from "@src/interfaces/IField";
-import {CardainerFileSettingsData} from "@src/interfaces/ISettings";
-import {CLOZE_ERROR, mochiCardHasClozes, TAG_PREFIX, TAG_SEP,} from "@src/models/BeginEndCard";
+import {FIELDS_BY_TEMPALTE_NAME} from "@src/interfaces/IField";
+import {TAG_PREFIX, TAG_SEP,} from "@src/models/BeginEndCard";
 import {debug} from "@src/utils/Logger";
-import {MochiCard} from "@src/models/MochiCard";
-import {MochiSyncService} from "@src/services/MochiSyncService";
-import {
-    findMochiTemplateFieldIdByName,
-    findMochiTemplateFromName,
-    makeMochiCardFieldById,
-} from "@src/models/MochiTemplate";
 import {AbstractCard} from "@src/models/AbstractCard";
 
-export class RegexCard extends AbstractCard{
-
-    getIdentifier(): string {
-        return this.identifier
-    }
-    getTags(): string[] {
-        return this.tags
-    }
-    getCardTemplateName(): string {
-        return this.cardTemplateName
-    }
+export class RegexCard extends AbstractCard {
 
     match: RegExpMatchArray;
     groups: Array<string>;
@@ -30,7 +12,7 @@ export class RegexCard extends AbstractCard{
     constructor(
         match: RegExpMatchArray,
         cardTemplateName: string,
-        fieldsDict: FIELDS_DICT,
+        fieldsByTemplateName: FIELDS_BY_TEMPALTE_NAME,
         tags: boolean,
         id: boolean,
         curlyCloze: boolean,
@@ -38,18 +20,31 @@ export class RegexCard extends AbstractCard{
         formatter: FormatConverter
     ) {
 
-        super(match[0],fieldsDict,curlyCloze,highlightsToCloze,formatter)
-        debug({regex_card_match: match});
+        super()
         this.match = match;
         this.cardTemplateName = cardTemplateName;
         this.identifier = id ? this.match.pop() : null;
         this.tags = tags
             ? this.match.pop().slice(TAG_PREFIX.length).split(TAG_SEP)
             : [];
-        this.fieldNames = fieldsDict[cardTemplateName];
+        this.fieldNames = fieldsByTemplateName[cardTemplateName];
         this.curlyCloze = curlyCloze;
         this.formatter = formatter;
         this.highlightsToCloze = highlightsToCloze;
+
+        this.init(match[0], fieldsByTemplateName, curlyCloze, highlightsToCloze, formatter)
+    }
+
+    getIdentifier(): string {
+        return this.identifier
+    }
+
+    getTags(): string[] {
+        return this.tags
+    }
+
+    getCardTemplateName(): string {
+        return this.cardTemplateName
     }
 
     getCardFieldContentByFieldNameDict(): Record<string, string> {

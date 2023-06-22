@@ -1,5 +1,7 @@
 import {AbstractCard} from "@src/models/AbstractCard";
 import {TAG_SEP} from "@src/models/BeginEndCard";
+import {FIELDS_BY_TEMPALTE_NAME} from "@src/interfaces/IField";
+import {FormatConverter} from "@src/utils/FormatConverter";
 
 export class InlineCard extends AbstractCard {
 
@@ -8,6 +10,18 @@ export class InlineCard extends AbstractCard {
     static TYPE_REGEXP: RegExp = /\[(.*?)\]/;
 
 
+    constructor(cardContent: string,
+                fieldsByTemplateName: FIELDS_BY_TEMPALTE_NAME,
+                curlyCloze: boolean,
+                highlightsToCloze: boolean,
+                formatter: FormatConverter,) {
+        super();
+        this.init(cardContent,
+            fieldsByTemplateName,
+            curlyCloze,
+            highlightsToCloze,
+            formatter)
+    }
 
     getIdentifier(): string | null {
         const result = this.content.match(InlineCard.ID_REGEXP)
