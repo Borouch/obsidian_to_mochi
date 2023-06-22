@@ -38,6 +38,12 @@ function leftExclusiveSetElements<T>(set1: Set<T>, set2: Set<T>): Set<T> {
     return resultSet;
 }
 
+export interface ScanStats {
+    created: number,
+    deleted: number,
+    updated: number
+}
+
 export class FileManager {
     app: App;
     data: CardainerFileSettingsData;
@@ -47,6 +53,9 @@ export class FileManager {
     requests_1_result: any;
     pendingAttachmentLinkByGeneratedId: Record<string, string> = {};
     persistedAttachmentLinkByGeneratedId: Record<string, string>;
+
+    stats: ScanStats = {created: 0, deleted: 0, updated: 0}
+
 
     constructor(
         app: App,
@@ -182,7 +191,11 @@ export class FileManager {
             ) {
                 //Indicates it's changed or new
                 console.info("Scanning ", cardainerFile.path, "as it's changed or new.");
-                cardainerFile.scanFileForCardsCRUD();
+                const fileStats = cardainerFile.scanFileForCardsCRUD();
+                this.stats.created += fileStats.created
+                this.stats.updated += fileStats.updated
+                this.stats.deleted += fileStats.deleted
+
                 changedCardFiles.push(cardainerFile);
                 changedTFiles.push(this.tFiles[i]);
             }

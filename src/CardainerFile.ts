@@ -7,10 +7,10 @@ import {FormatConverter} from './utils/FormatConverter'
 import {CachedMetadata, HeadingCache} from 'obsidian'
 import {CardainerFileSettingsData} from "@src/interfaces/ISettings";
 import {RegexCard} from "@src/models/RegexCard";
-import {debug} from "@src/utils/Logger";
 import {ArrayUtil} from "@src/utils/ArrayUtil";
 import {MochiCard} from "@src/models/MochiCard";
 import {InlineCard} from "@src/models/InlineCard";
+import {ScanStats} from "@src/FilesManager";
 
 const double_regexp: RegExp = /(?:\r\n|\r|\n)((?:\r\n|\r|\n)(?:<!--)?ID: \d+)/g
 
@@ -64,7 +64,7 @@ function containedInSpan(span: [number, number], spans: Array<[number, number]>)
 
 function* findMatchNotIgnored(pattern: RegExp, text: string, ignore_spans: Array<[number, number]>): IterableIterator<RegExpMatchArray> {
     let matches = text.matchAll(pattern)
-    debugger
+
     for (let match of matches) {
         const matchSpan: [number, number] = [match.index, match.index + match[0].length]
         if (!(containedInSpan(matchSpan, ignore_spans))) {
@@ -247,7 +247,7 @@ export class CardainerFile extends AbstractCardainerFile {
             // That second thing essentially gets the index of the end of the first capture group.
             let [cardContent, position]: [string, number] = [card_match[1], card_match.index + card_match[0].indexOf(card_match[1]) + card_match[1].length]
             let mochiCard: MochiCard | null = new BeginEndCard(
-                cardContent,this.settingsData.fieldsByTemplateName,
+                cardContent, this.settingsData.fieldsByTemplateName,
                 this.settingsData.isCurlyCloze,
                 this.settingsData.isHighlightsToCloze,
                 this.formatter
@@ -343,7 +343,7 @@ export class CardainerFile extends AbstractCardainerFile {
                     if (!mochiCard) {
                         break;
                     }
-                    debugger
+
                     if (search_id) {
                         if (!(this.settingsData.existingMochiCardIds.includes(mochiCard.id))) {
                             if (mochiCard.id == CLOZE_ERROR) {
@@ -373,7 +373,7 @@ export class CardainerFile extends AbstractCardainerFile {
     /*
     * Figures out what cards need to be added, deleted, updated
     * */
-    scanFileForCardsCRUD() {
+    scanFileForCardsCRUD(): ScanStats {
         this.setupScan()
         this.scanBeginEndCards()
         this.scanInlineCards()
@@ -386,6 +386,12 @@ export class CardainerFile extends AbstractCardainerFile {
         }
         this.allTypeMochiCardsToAdd = this.mochiCardsToAdd.concat(this.inlineCardsToAdd).concat(this.regexCardsToAdd)
         this.scanCardDeletions()
+
+        return {
+            updated: this.mochiCardsToEdit.length,
+            deleted: this.mochiCardIdsToDelete.length,
+            created: this.allTypeMochiCardsToAdd.length
+        }
     }
 
     fixNewLineIds() {

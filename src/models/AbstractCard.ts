@@ -150,7 +150,7 @@ export abstract class AbstractCard {
         this.tags = this.getTags();
         this.cardTemplateName = this.getCardTemplateName();
         if (!fieldsByTemplateName.hasOwnProperty(this.cardTemplateName)) {
-            debugger
+
             this.mochiTemplateNameNotFound = true;
             return;
         }

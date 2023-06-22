@@ -112,6 +112,8 @@ export default class ObsidianToMochiPlugin extends Plugin {
             this.cacheData.card_hashes_by_id = MochiSyncService.getMochiCardHashesById()
             new Notice("All done! Saving cache data");
             await this.cacheDataManager.saveAllData(this.cacheData);
+            const stats = manager.stats
+            new Notice(`UPDATED: ${stats.updated}, DELETED: ${stats.deleted}, CREATED: ${stats.created}`, 3000)
         } catch (e) {
             new Notice('Something went wrong! Check console for details')
         }
