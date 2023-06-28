@@ -1,7 +1,7 @@
 import {MochiTemplateField} from "@src/models/MochiTemplateField";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {ModelNotFoundError} from "@src/exceptions/ModelNotFoundError";
-import {MochiCardField} from "@src/models/MochiCard";
+import {MochiCardField} from "@src/models/IMochiCard";
 
 export interface MochiTemplate {
     id: string;

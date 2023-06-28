@@ -1,6 +1,6 @@
 import {MochiAttachmentDTO} from "@src/models/MochiAttachment";
 import {Mapper} from "@src/interfaces/Mapper";
-import {MochiCard} from "@src/models/MochiCard";
+import {IMochiCard} from "@src/models/IMochiCard";
 import {MochiAttachmentMapper} from "@src/mappers/MochiAttachmentMapper";
 
 export interface MochiCardField {
@@ -27,12 +27,12 @@ export interface MochiCardDTO {
 }
 
 
-export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCardDTO> {
+export class MochiCardMapper implements Mapper<IMochiCard, MochiCardDTO, MochiCardDTO> {
     public static i = new MochiCardMapper()
     private constructor() {
     }
 
-    mapFromDTO(dto: MochiCardDTO): MochiCard {
+    mapFromDTO(dto: MochiCardDTO): IMochiCard {
         return {
             tags: [], // Tags field is not available in MochiCardDTO, defaulting to empty array
             content: dto.content,
@@ -53,7 +53,7 @@ export class MochiCardMapper implements Mapper<MochiCard, MochiCardDTO, MochiCar
         };
     }
 
-    mapToDTO(model: MochiCard): MochiCardDTO {
+    mapToDTO(model: IMochiCard): MochiCardDTO {
         return {
             content: model.content,
             "deck-id": model.deckId,

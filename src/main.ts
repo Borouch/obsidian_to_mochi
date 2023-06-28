@@ -2,8 +2,8 @@ import {addIcon, Notice, Plugin} from "obsidian";
 import {debug} from "@src/utils/Logger";
 
 import axios from "axios";
-import {pluginSettingsToCardainerFileSettings} from "@src/PluginSettingsToCardainerFileSettings";
-import {FileManager} from "@src/FilesManager";
+import {pluginSettingsToCardainerFileSettings} from "@src/utils/PluginSettingsToCardainerFileSettings";
+import {FileManager} from "@src/utils/FilesManager";
 import {CacheData, CardainerFileSettingsData, PluginSettings,} from "@src/interfaces/ISettings";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {MochiCardService} from "@src/services/MochiCardService";
@@ -72,7 +72,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
         try {
 
             if (!this.settings.API_TOKEN) {
-                new Notice("Provide Mochi API key in order to start sync...");
+                new Notice("Provide Mochi API key in order to start sync...",3000);
 
                 return;
             }
@@ -101,7 +101,6 @@ export default class ObsidianToMochiPlugin extends Plugin {
             await MochiSyncService.syncFileManagerWithRemote(manager);
             await MochiSyncService.syncChangesToCardainerFiles(manager);
 
-            // await manager.requests_1()
             this.cacheData.persisted_attachment_links_by_id =
                 manager.persistedAttachmentLinkByGeneratedId;
 

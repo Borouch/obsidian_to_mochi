@@ -57,6 +57,7 @@ export interface CardainerFileSettingsData {
     folderTags: Record<string, string>
     defaultTags: string[]
     defaultDeckName: string
+    defaultNestedDeckNameSeparator:string
 }
 
 

@@ -1,5 +1,5 @@
 import {Mapper} from "@src/interfaces/Mapper";
-import {MochiDeck} from "@src/models/MochiDeck";
+import {IMochiDeck, MochiDeck} from "@src/models/IMochiDeck";
 
 export interface MochiDeckIndexDTO {
     id?: string
@@ -20,7 +20,7 @@ export interface MochiDeckStoreDTO extends MochiDeckIndexDTO {
 
 export class MochiDeckMapper implements Mapper<MochiDeck, MochiDeckIndexDTO, MochiDeckStoreDTO> {
     mapFromDTO(dto: MochiDeckIndexDTO): MochiDeck {
-        return {
+        return new MochiDeck({
             id: dto.id,
             name: dto.name,
             parentId: dto['parent-id'],
@@ -32,10 +32,10 @@ export class MochiDeckMapper implements Mapper<MochiDeck, MochiDeckIndexDTO, Moc
             showSides: dto['show-sides'],
             sortByDirection: dto['sort-by-direction'],
             reviewReverse: dto['review-reverse'],
-        };
+        });
     }
 
-    mapToDTO(model: MochiDeck): MochiDeckStoreDTO {
+    mapToDTO(model: IMochiDeck): MochiDeckStoreDTO {
         return {
             name: model.name,
             ...(!!model.id ? {id: model.id} : {}),

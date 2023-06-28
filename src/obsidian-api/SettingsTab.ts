@@ -1,8 +1,5 @@
-import {Notice, Plugin, PluginSettingTab, Setting, TFolder} from "obsidian";
+import {Notice, PluginSettingTab, Setting, TFolder} from "obsidian";
 import ObsidianToMochiPlugin from "@src/main";
-import {MochiSyncService} from "@src/services/MochiSyncService";
-import {SettingsManager} from "@src/utils/SettingsManager";
-import {MochiTemplateService} from "@src/services/MochiTemplateService";
 
 const defaultDescs = {
     Tag: "The tag that the this.mochiPlugin automatically adds to any generated cards.",
@@ -392,12 +389,27 @@ export class SettingsTab extends PluginSettingTab {
                         new Notice("File Hash Cache cleared successfully!");
                     });
             });
+        new Setting(action_buttons)
+            .setName("Clear Cards Hash Cache")
+            .setDesc(
+                `Clear the cached dictionary of cards hashes that the this.mochiPlugin has scanned before.`
+            )
+            .addButton((button) => {
+                button
+                    .setButtonText("Clear")
+                    .setClass("mod-cta")
+                    .onClick(async () => {
+                        this.mochiPlugin.cacheData.card_hashes_by_id = {};
+                        await this.mochiPlugin.cacheDataManager.saveAllData(this.mochiPlugin.cacheData);
+                        new Notice("Card Hash Cache cleared successfully!");
+                    });
+            });
     }
 
     setupApiField() {
         let {containerEl} = this;
 
-        const h = containerEl.createEl("h2",{text: "API key"});
+        const h = containerEl.createEl("h2", {text: "API key"});
         const apiField = containerEl.createEl("div");
         new Setting(apiField).setName("Mochi API key").addText((t) =>
             t.setValue(this.mochiPlugin.settings.API_TOKEN).onChange(async (value) => {

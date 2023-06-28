@@ -1,5 +1,5 @@
 import {BaseController} from "@src/controllers/BaseController";
-import {MochiDeck} from "@src/models/MochiDeck";
+import {IMochiDeck, MochiDeck} from "@src/models/IMochiDeck";
 import {MochiDeckIndexDTO, MochiDeckMapper, MochiDeckStoreDTO} from "@src/mappers/MochiDeckMapper";
 
 export class MochiDeckController extends BaseController<MochiDeck, MochiDeckMapper, MochiDeckIndexDTO, MochiDeckStoreDTO> {

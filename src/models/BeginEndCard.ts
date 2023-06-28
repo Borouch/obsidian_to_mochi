@@ -4,7 +4,7 @@ Input must be the note text.
 Does NOT deal with finding the note in the file.*/
 
 import {AbstractCard} from "@src/models/AbstractCard";
-import {MochiCard} from "@src/models/MochiCard";
+import {IMochiCard} from "@src/models/IMochiCard";
 import {FIELDS_BY_TEMPALTE_NAME} from "@src/interfaces/IField";
 import {FormatConverter} from "@src/utils/FormatConverter";
 
@@ -24,7 +24,7 @@ export function hasClozes(text: string): boolean {
     return ANKI_CLOZE_REGEXP.test(text)
 }
 
-export function mochiCardHasClozes(mochiCard: MochiCard): boolean {
+export function mochiCardHasClozes(mochiCard: IMochiCard): boolean {
     /*Checks whether a note has cloze deletions in any of its fields.*/
     for (let id in mochiCard.fieldById) {
         if (hasClozes(mochiCard.fieldById[id].value)) {

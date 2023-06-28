@@ -3,7 +3,7 @@ import {FIELDS_BY_TEMPALTE_NAME, FROZEN_FIELDS_DICT} from "@src/interfaces/IFiel
 import {CardainerFileSettingsData} from "@src/interfaces/ISettings";
 import {CLOZE_ERROR, mochiCardHasClozes, NOTE_TYPE_ERROR, OBS_TAG_REGEXP} from "@src/models/BeginEndCard";
 import {MochiSyncService} from "@src/services/MochiSyncService";
-import {MochiCard} from "@src/models/MochiCard";
+import {IMochiCard, MochiCard} from "@src/models/IMochiCard";
 import {
     findMochiTemplateFieldIdByName,
     findMochiTemplateFromName,
@@ -42,12 +42,12 @@ export abstract class AbstractCard {
     }
 
     parseToMochiCard(
-        deckName: string,
+        nestedDeckNames: string[],
         url: string,
         frozenFieldByCardTemplateNameDict: FROZEN_FIELDS_DICT,
         data: CardainerFileSettingsData,
         cardContextBreadcrumbText: string
-    ): MochiCard | null {
+    ): IMochiCard | null {
 
         if (this.mochiTemplateNameNotFound) {
             this.identifier = NOTE_TYPE_ERROR
@@ -60,11 +60,11 @@ export abstract class AbstractCard {
             mochiTemplate
         );
 
-        const mochiCard: MochiCard = {
+        const mochiCard: IMochiCard = new MochiCard({
             id: this.identifier,
             tags: this.tags,
             runtimeProps: {
-                deckName: deckName,
+                nestedDeckNames: nestedDeckNames,
                 attachmentLinkByGeneratedId: this.mochiAttachmentLinksById,
                 originalHash: CacheDataManager.i.cacheData.card_hashes_by_id[this.identifier],
                 currentHash: ''
@@ -75,7 +75,7 @@ export abstract class AbstractCard {
             deckId: null,
             content: "",
 
-        };
+        });
 
         if (url) {
             const fileLinkFieldsByCardTemplateNameDict =

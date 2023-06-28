@@ -1,8 +1,8 @@
-import {MochiCard} from "@src/models/MochiCard";
+import {IMochiCard} from "@src/models/IMochiCard";
 import {MochiCardDTO, MochiCardMapper} from "@src/mappers/MochiCardMapper";
 import {BaseController} from "@src/controllers/BaseController";
 
-export class MochiCardController extends BaseController<MochiCard, MochiCardMapper, MochiCardDTO, MochiCardDTO> {
+export class MochiCardController extends BaseController<IMochiCard, MochiCardMapper, MochiCardDTO, MochiCardDTO> {
 
     constructor(
         public RESOURCE: string = 'cards',

@@ -1,4 +1,4 @@
-import {MochiCard} from "@src/models/MochiCard";
+import {IMochiCard} from "@src/models/IMochiCard";
 import {MochiCardDTO, MochiCardMapper} from "@src/mappers/MochiCardMapper";
 import {ModelNotFoundError} from "@src/exceptions/ModelNotFoundError";
 import {MochiSyncService} from "@src/services/MochiSyncService";
@@ -9,14 +9,14 @@ export class MochiCardService {
         return await MochiSyncService.mochiCardController.index()
     }
 
-    public static async storeCards(cards: MochiCard[]): Promise<MochiCard[]> {
+    public static async storeCards(cards: IMochiCard[]): Promise<IMochiCard[]> {
         if (cards.length <= 0) return []
-        const mochiCards: MochiCard[] = []
+        const mochiCards: IMochiCard[] = []
         for (const card of cards) {
-            const deck = await MochiDeckService.findOrCreateDeck(card.runtimeProps.deckName)
+            const deck = await MochiDeckService.findOrCreateDeck(card.runtimeProps.nestedDeckNames)
             card.deckId = deck.id
             const dto: MochiCardDTO = MochiCardMapper.i.mapToDTO(card)
-            const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto)
+            const mochiCard: IMochiCard | null = await MochiSyncService.mochiCardController.store(dto)
             if (!mochiCard) {
                 throw new ModelNotFoundError('mochi card failed to be created');
             }
@@ -25,15 +25,15 @@ export class MochiCardService {
         return mochiCards
     }
 
-    public static async updateCards(cards: MochiCard[]) {
+    public static async updateCards(cards: IMochiCard[]) {
         if (cards.length <= 0) return []
 
-        const mochiCards: MochiCard[] = []
+        const mochiCards: IMochiCard[] = []
         for (const card of cards) {
-            const deck = await MochiDeckService.findOrCreateDeck(card.runtimeProps.deckName)
+            const deck = await MochiDeckService.findOrCreateDeck(card.runtimeProps.nestedDeckNames)
             card.deckId = deck.id
             const dto: MochiCardDTO = MochiCardMapper.i.mapToDTO(card)
-            const mochiCard: MochiCard | null = await MochiSyncService.mochiCardController.store(dto, card.id)
+            const mochiCard: IMochiCard | null = await MochiSyncService.mochiCardController.store(dto, card.id)
             if (!mochiCard) {
                 throw new ModelNotFoundError('mochi card failed to be created');
             }

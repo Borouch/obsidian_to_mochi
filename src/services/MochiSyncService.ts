@@ -1,22 +1,23 @@
-import {FileManager} from "@src/FilesManager";
+import {FileManager} from "@src/utils/FilesManager";
 import {MochiCardController} from "@src/controllers/MochiCardController";
 import {MochiDeckController} from "@src/controllers/MochiDeckController";
-import {MochiDeck} from "@src/models/MochiDeck";
-import {MochiCard, MochiCardField} from "@src/models/MochiCard";
+import {IMochiDeck} from "@src/models/IMochiDeck";
+import {IMochiCard, MochiCardField} from "@src/models/IMochiCard";
 import {debug} from "@src/utils/Logger";
 import {MochiCardService} from "@src/services/MochiCardService";
 import {MochiTemplate} from "@src/models/MochiTemplate";
 import {getHash} from "@src/Helpers";
+import {MochiDeckService} from "@src/services/MochiDeckService";
 
 export class MochiSyncService {
-    public static mochiDecks: MochiDeck[] = []
-    public static mochiCards: MochiCard[] = []
+    public static mochiDecks: IMochiDeck[] = []
+    public static mochiCards: IMochiCard[] = []
     public static mochiTemplates: MochiTemplate[] = []
     public static mochiDeckController = new MochiDeckController()
     public static mochiCardController = new MochiCardController()
 
     public static async syncFileManagerWithRemote(manager: FileManager) {
-        MochiSyncService.mochiDecks = await MochiSyncService.mochiDeckController.index() ?? []
+        MochiSyncService.mochiDecks = await MochiDeckService.index()
         for (const cardFile of manager.cardainerFiles) {
 
             await MochiCardService.destroyCards(cardFile.mochiCardIdsToDelete)
@@ -29,9 +30,9 @@ export class MochiSyncService {
                 this.mochiCards.splice(idx, 1)
             }
 
-            const storedCards: MochiCard[] = await MochiCardService.storeCards(cardFile.allTypeMochiCardsToAdd)
+            const storedCards: IMochiCard[] = await MochiCardService.storeCards(cardFile.allTypeMochiCardsToAdd)
             this.mochiCards.push(...storedCards)
-            const updatedCards: MochiCard[] = await MochiCardService.updateCards(cardFile.mochiCardsToEdit)
+            const updatedCards: IMochiCard[] = await MochiCardService.updateCards(cardFile.mochiCardsToEdit)
             for (const uc of updatedCards) {
                 const idx = this.mochiCards.findIndex((c) => uc.id === c.id)
                 if (idx < 0) {

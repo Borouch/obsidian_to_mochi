@@ -4,12 +4,12 @@ import {CachedMetadata} from "obsidian";
 import * as c from "../Constants";
 
 import showdownHighlight from "showdown-highlight";
-import {MochiCard} from "@src/models/MochiCard";
+import {IMochiCard} from "@src/models/IMochiCard";
 import {findMochiTemplateFieldIdByName} from "@src/models/MochiTemplate";
 import {AbstractCard} from "@src/models/AbstractCard";
 import {RegexCard} from "@src/models/RegexCard";
 import {generateRandomId} from "@src/Helpers";
-import {FileManager} from "@src/FilesManager";
+import {FileManager} from "@src/utils/FilesManager";
 
 const ANKI_MATH_REGEXP: RegExp = /(\\\[[\s\S]*?\\\])|(\\\([\s\S]*?\\\))/g;
 const HIGHLIGHT_REGEXP: RegExp = /==(.*?)==/g;
@@ -85,7 +85,7 @@ export class FormatConverter {
     }
 
     appendFileSourceLinkToMochiCardField(
-        mochiCard: MochiCard,
+        mochiCard: IMochiCard,
         url: string,
         fileLinkFieldId: string
     ): void {
@@ -94,7 +94,7 @@ export class FormatConverter {
     }
 
     appendFrozenFieldToMochiCardField(
-        mochiCard: MochiCard,
+        mochiCard: IMochiCard,
         frozen_fields_dict: Record<string, Record<string, string>>
     ): void {
         for (let fieldId in mochiCard.fieldById) {
@@ -105,7 +105,7 @@ export class FormatConverter {
     }
 
     appendContextFieldToMochiCardField(
-        mochiCard: MochiCard,
+        mochiCard: IMochiCard,
         context: string,
         contextFieldNameByCardTemplateName: Record<string, string>
     ) {
