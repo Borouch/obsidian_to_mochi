@@ -1,10 +1,10 @@
 /*Performing plugin operations on markdown file contents*/
 
-import {FROZEN_FIELDS_DICT} from '../interfaces/IField'
-import {BeginEndCard, CLOZE_ERROR, ID_REGEXP_STR, NOTE_TYPE_ERROR, TAG_REGEXP_STR, TAG_SEP} from './BeginEndCard'
-import * as c from '../Constants'
-import {FormatConverter} from '../utils/FormatConverter'
-import {CachedMetadata, HeadingCache} from 'obsidian'
+import {FROZEN_FIELDS_DICT} from "../interfaces/IField";
+import {BeginEndCard, CLOZE_ERROR, ID_REGEXP_STR, NOTE_TYPE_ERROR, TAG_REGEXP_STR, TAG_SEP,} from "./BeginEndCard";
+import * as c from "../Constants";
+import {FormatConverter} from "../utils/FormatConverter";
+import {CachedMetadata, HeadingCache} from "obsidian";
 import {CardainerFileSettingsData} from "@src/interfaces/ISettings";
 import {RegexCard} from "@src/models/RegexCard";
 import {ArrayUtil} from "@src/utils/ArrayUtil";
@@ -12,242 +12,299 @@ import {IMochiCard} from "@src/models/IMochiCard";
 import {InlineCard} from "@src/models/InlineCard";
 import {ScanStats} from "@src/utils/FilesManager";
 
-const double_regexp: RegExp = /(?:\r\n|\r|\n)((?:\r\n|\r|\n)(?:<!--)?ID: \d+)/g
+const double_regexp: RegExp = /(?:\r\n|\r|\n)((?:\r\n|\r|\n)(?:<!--)?ID: \d+)/g;
 
-function mochiCardIdToCardIdentifierToken(identifier: string, inline: boolean = false, comment: boolean = false): string {
-    let result = "ID: " + identifier.toString()
+function mochiCardIdToCardIdentifierToken(
+    identifier: string,
+    inline: boolean = false,
+    comment: boolean = false
+): string {
+    let result = "ID: " + identifier.toString();
     if (comment) {
-        result = "<!--" + result + "-->"
+        result = "<!--" + result + "-->";
     }
     if (inline) {
-        result += " "
+        result += " ";
     } else {
-        result += "\n"
+        result += "\n";
     }
-    return result
+    return result;
 }
 
-function string_insert(text: string, position_inserts: Array<[number, string]>): string {
+function string_insert(
+    text: string,
+    position_inserts: Array<[number, string]>
+): string {
     /*Insert strings in position_inserts into text, at indices.
 
-    position_inserts will look like:
-    [(0, "hi"), (3, "hello"), (5, "beep")]*/
-    let offset = 0
-    let sorted_inserts: Array<[number, string]> = position_inserts.sort((a, b): number => a[0] - b[0])
+      position_inserts will look like:
+      [(0, "hi"), (3, "hello"), (5, "beep")]*/
+    let offset = 0;
+    let sorted_inserts: Array<[number, string]> = position_inserts.sort(
+        (a, b): number => a[0] - b[0]
+    );
     for (let insertion of sorted_inserts) {
-        let position = insertion[0]
-        let insert_str = insertion[1]
-        text = text.slice(0, position + offset) + insert_str + text.slice(position + offset)
-        offset += insert_str.length
+        let position = insertion[0];
+        let insert_str = insertion[1];
+        text =
+            text.slice(0, position + offset) +
+            insert_str +
+            text.slice(position + offset);
+        offset += insert_str.length;
     }
-    return text
+    return text;
 }
 
 function spans(pattern: RegExp, text: string): Array<[number, number]> {
     /*Return a list of span-tuples for matches of pattern in text.*/
-    let output: Array<[number, number]> = []
-    let matches = text.matchAll(pattern)
+    let output: Array<[number, number]> = [];
+    let matches = text.matchAll(pattern);
     for (let match of matches) {
-        output.push(
-            [match.index, match.index + match[0].length]
-        )
+        output.push([match.index, match.index + match[0].length]);
     }
-    return output
+    return output;
 }
 
-function containedInSpan(span: [number, number], spans: Array<[number, number]>): boolean {
+function containedInSpan(
+    span: [number, number],
+    spans: Array<[number, number]>
+): boolean {
     /*Return whether span is contained in spans (+- 1 leeway)*/
     return spans.some(
         (element) => span[0] >= element[0] - 1 && span[1] <= element[1] + 1
-    )
+    );
 }
 
-function* findMatchNotIgnored(pattern: RegExp, text: string, ignore_spans: Array<[number, number]>): IterableIterator<RegExpMatchArray> {
-    let matches = text.matchAll(pattern)
+function* findMatchNotIgnored(
+    pattern: RegExp,
+    text: string,
+    ignore_spans: Array<[number, number]>
+): IterableIterator<RegExpMatchArray> {
+    let matches = text.matchAll(pattern);
 
     for (let match of matches) {
-        const matchSpan: [number, number] = [match.index, match.index + match[0].length]
-        if (!(containedInSpan(matchSpan, ignore_spans))) {
-            yield match
+        const matchSpan: [number, number] = [
+            match.index,
+            match.index + match[0].length,
+        ];
+        if (!containedInSpan(matchSpan, ignore_spans)) {
+            yield match;
         }
     }
 }
 
 abstract class AbstractCardainerFile {
-    contents: string
-    path: string
-    url: string
-    originalContents: string
-    settingsData: CardainerFileSettingsData
-    tFileCache: CachedMetadata
+    contents: string;
+    path: string;
+    url: string;
+    originalContents: string;
+    settingsData: CardainerFileSettingsData;
+    tFileCache: CachedMetadata;
 
-    frozenFieldDict: FROZEN_FIELDS_DICT
-    nestedDeckNames: string[]
-    globalTags: string
+    frozenFieldDict: FROZEN_FIELDS_DICT;
+    nestedDeckNames: string[];
+    globalTags: string;
 
-    mochiCardsToAdd: IMochiCard[] = []
-    mochiCardsToEdit: IMochiCard[] = []
-    mochiCardIdsToDelete: string[]
+    mochiCardsToAdd: IMochiCard[] = [];
+    mochiCardsToEdit: IMochiCard[] = [];
+    mochiCardIdsToDelete: string[];
 
-    idIndexes: number[]
-    allTypeMochiCardsToAdd: IMochiCard[] = []
-    allMochiCards: IMochiCard[] = []
-    mochiCardIds: Array<string | null> = []
-    cardIds: number[]
-    ankiTags: string[]
+    idIndexes: number[];
+    allTypeMochiCardsToAdd: IMochiCard[] = [];
+    allMochiCards: IMochiCard[] = [];
+    mochiCardIds: Array<string | null> = [];
+    cardIds: number[];
+    ankiTags: string[];
 
-    formatter: FormatConverter
+    formatter: FormatConverter;
 
-    constructor(file_contents: string, path: string, url: string, data: CardainerFileSettingsData, file_cache: CachedMetadata) {
-        this.settingsData = data
-        this.contents = file_contents
-        this.path = path
-        this.url = url
-        this.originalContents = this.contents
-        this.tFileCache = file_cache
-        this.formatter = new FormatConverter(file_cache, this.settingsData.vaultName)
+    constructor(
+        file_contents: string,
+        path: string,
+        url: string,
+        data: CardainerFileSettingsData,
+        file_cache: CachedMetadata
+    ) {
+        this.settingsData = data;
+        this.contents = file_contents;
+        this.path = path;
+        this.url = url;
+        this.originalContents = this.contents;
+        this.tFileCache = file_cache;
+        this.formatter = new FormatConverter(
+            file_cache,
+            this.settingsData.vaultName
+        );
     }
 
     parseFrozenFieldsDict() {
-        let frozen_fields_dict: FROZEN_FIELDS_DICT = {}
+        let frozen_fields_dict: FROZEN_FIELDS_DICT = {};
         for (let note_type in this.settingsData.fieldsByTemplateName) {
-            let fields: string[] = this.settingsData.fieldsByTemplateName[note_type]
-            let temp_dict: Record<string, string> = {}
+            let fields: string[] = this.settingsData.fieldsByTemplateName[note_type];
+            let temp_dict: Record<string, string> = {};
             for (let field of fields) {
-                temp_dict[field] = ""
+                temp_dict[field] = "";
             }
-            frozen_fields_dict[note_type] = temp_dict
+            frozen_fields_dict[note_type] = temp_dict;
         }
         for (let match of this.contents.matchAll(this.settingsData.FROZEN_REGEXP)) {
-            const [note_type, fields]: [string, string] = [match[1], match[2]]
-            const virtual_note = note_type + "\n" + fields
+            const [note_type, fields]: [string, string] = [match[1], match[2]];
+            const virtual_note = note_type + "\n" + fields;
             const beginEndCard: Record<string, string> = new BeginEndCard(
-                virtual_note, this.settingsData.fieldsByTemplateName,
+                virtual_note,
+                this.settingsData.fieldsByTemplateName,
                 this.settingsData.isCurlyCloze,
                 this.settingsData.isHighlightsToCloze,
                 this.formatter
-            ).getCardFieldContentByFieldNameDict()
-            frozen_fields_dict[note_type] = beginEndCard
+            ).getCardFieldContentByFieldNameDict();
+            frozen_fields_dict[note_type] = beginEndCard;
         }
-        this.frozenFieldDict = frozen_fields_dict
+        this.frozenFieldDict = frozen_fields_dict;
     }
 
     parseTargetDeck() {
-        const result = this.contents.match(this.settingsData.DECK_REGEXP)
-        this.nestedDeckNames = result ? result[1].split(this.settingsData.defaultNestedDeckNameSeparator) : [this.settingsData.defaultDeckName]
+        const result = this.contents.match(this.settingsData.DECK_REGEXP);
+        this.nestedDeckNames = result
+            ? result[1].split(this.settingsData.defaultNestedDeckNameSeparator)
+            : [this.settingsData.defaultDeckName];
     }
 
     parseGlobalTags() {
-        const result = this.contents.match(this.settingsData.TAG_REGEXP)
-        this.globalTags = result ? result[1] : ""
+        const result = this.contents.match(this.settingsData.TAG_REGEXP);
+        this.globalTags = result ? result[1] : "";
     }
 
-    abstract scanFileForCardsCRUD(): void
+    abstract scanFileForCardsCRUD(): void;
 
     scanCardDeletions() {
         for (let match of this.contents.matchAll(this.settingsData.DELETE_REGEXP)) {
-            const mochiCardId = match[1]
-            this.mochiCardIdsToDelete.push(mochiCardId)
+            const mochiCardId = match[1];
+            this.mochiCardIdsToDelete.push(mochiCardId);
             ArrayUtil.removeArrayItem(
-                mochiCardId, this.mochiCardsToEdit,
-                (mochiCard: IMochiCard, id: string) => id === mochiCard.id)
+                mochiCardId,
+                this.mochiCardsToEdit,
+                (mochiCard: IMochiCard, id: string) => id === mochiCard.id
+            );
         }
-
     }
 
     getContextBreadcrumbAtIndex(position: number): string {
-        let result: string = this.path
-        let currentContext: HeadingCache[] = []
-        if (!(this.tFileCache.hasOwnProperty('headings'))) {
-            return result
+        let result: string = this.path;
+        let currentContext: HeadingCache[] = [];
+        if (!this.tFileCache.hasOwnProperty("headings")) {
+            return result;
         }
         for (let currentHeading of this.tFileCache.headings) {
             if (position < currentHeading.position.start.offset) {
                 //We've gone past position now with headings, so let's return!
-                break
+                break;
             }
-            let insert_index: number = 0
+            let insert_index: number = 0;
             for (let contextHeading of currentContext) {
                 if (currentHeading.level > contextHeading.level) {
-                    insert_index += 1
-                    continue
+                    insert_index += 1;
+                    continue;
                 }
-                break
+                break;
             }
-            currentContext = currentContext.slice(0, insert_index)
-            currentContext.push(currentHeading)
+            currentContext = currentContext.slice(0, insert_index);
+            currentContext.push(currentHeading);
         }
-        let heading_strs: string[] = []
+        let heading_strs: string[] = [];
         for (let contextHeading of currentContext) {
-            heading_strs.push(contextHeading.heading)
+            heading_strs.push(contextHeading.heading);
         }
-        let result_arr: string[] = [result]
-        result_arr.push(...heading_strs)
-        return result_arr.join(" > ")
+        let result_arr: string[] = [result];
+        result_arr.push(...heading_strs);
+        return result_arr.join(" > ");
     }
 
-    abstract writeIDs(): void
+    abstract writeIDs(): void;
 
     performDelete() {
-        this.contents = this.contents.replace(this.settingsData.DELETE_REGEXP, "")
+        this.contents = this.contents.replace(this.settingsData.DELETE_REGEXP, "");
     }
-
 }
 
 export class CardainerFile extends AbstractCardainerFile {
-    ignoreSpans: [number, number][]
-    customCardTypeRegexps: Record<string, string>
-    inlineCardsToAdd: IMochiCard[]
-    inlineIdIndexes: number[]
-    regexCardsToAdd: IMochiCard[]
-    regexIdIndexes: number[]
+    ignoreSpans: [number, number][];
+    customCardTypeRegexps: Record<string, string>;
+    inlineCardsToAdd: IMochiCard[];
+    inlineIdIndexes: number[];
+    regexCardsToAdd: IMochiCard[];
+    regexIdIndexes: number[];
 
-    constructor(file_contents: string, path: string, url: string, data: CardainerFileSettingsData, cacheData: CachedMetadata) {
-        super(file_contents, path, url, data, cacheData)
-        this.customCardTypeRegexps = data.customRegexps
+    constructor(
+        file_contents: string,
+        path: string,
+        url: string,
+        data: CardainerFileSettingsData,
+        cacheData: CachedMetadata
+    ) {
+        super(file_contents, path, url, data, cacheData);
+        this.customCardTypeRegexps = data.customRegexps;
     }
 
     addSpansToIgnore() {
-        this.ignoreSpans = []
-        this.ignoreSpans.push(...spans(this.settingsData.FROZEN_REGEXP, this.contents))
-        const deck_result = this.contents.match(this.settingsData.DECK_REGEXP)
+        this.ignoreSpans = [];
+        this.ignoreSpans.push(
+            ...spans(this.settingsData.FROZEN_REGEXP, this.contents)
+        );
+        const deck_result = this.contents.match(this.settingsData.DECK_REGEXP);
         if (deck_result) {
-            this.ignoreSpans.push([deck_result.index, deck_result.index + deck_result[0].length])
+            this.ignoreSpans.push([
+                deck_result.index,
+                deck_result.index + deck_result[0].length,
+            ]);
         }
-        const tag_result = this.contents.match(this.settingsData.TAG_REGEXP)
+        const tag_result = this.contents.match(this.settingsData.TAG_REGEXP);
         if (tag_result) {
-            this.ignoreSpans.push([tag_result.index, tag_result.index + tag_result[0].length])
+            this.ignoreSpans.push([
+                tag_result.index,
+                tag_result.index + tag_result[0].length,
+            ]);
         }
-        this.ignoreSpans.push(...spans(this.settingsData.BEGIN_END_CARD, this.contents))
-        this.ignoreSpans.push(...spans(this.settingsData.INLINE_REGEXP, this.contents))
-        this.ignoreSpans.push(...spans(c.OBS_INLINE_MATH_REGEXP, this.contents))
-        this.ignoreSpans.push(...spans(c.OBS_DISPLAY_MATH_REGEXP, this.contents))
-        this.ignoreSpans.push(...spans(c.OBS_CODE_REGEXP, this.contents))
-        this.ignoreSpans.push(...spans(c.OBS_DISPLAY_CODE_REGEXP, this.contents))
+        this.ignoreSpans.push(
+            ...spans(this.settingsData.BEGIN_END_CARD, this.contents)
+        );
+        this.ignoreSpans.push(
+            ...spans(this.settingsData.INLINE_REGEXP, this.contents)
+        );
+        this.ignoreSpans.push(...spans(c.OBS_INLINE_MATH_REGEXP, this.contents));
+        this.ignoreSpans.push(...spans(c.OBS_DISPLAY_MATH_REGEXP, this.contents));
+        this.ignoreSpans.push(...spans(c.OBS_CODE_REGEXP, this.contents));
+        this.ignoreSpans.push(...spans(c.OBS_DISPLAY_CODE_REGEXP, this.contents));
     }
 
     setupScan() {
-        this.parseFrozenFieldsDict()
-        this.parseTargetDeck()
-        this.parseGlobalTags()
-        this.addSpansToIgnore()
-        this.mochiCardsToAdd = []
-        this.inlineCardsToAdd = []
-        this.regexCardsToAdd = []
-        this.idIndexes = []
-        this.inlineIdIndexes = []
-        this.regexIdIndexes = []
-        this.mochiCardsToEdit = []
-        this.mochiCardIdsToDelete = []
+        this.parseFrozenFieldsDict();
+        this.parseTargetDeck();
+        this.parseGlobalTags();
+        this.addSpansToIgnore();
+        this.mochiCardsToAdd = [];
+        this.inlineCardsToAdd = [];
+        this.regexCardsToAdd = [];
+        this.idIndexes = [];
+        this.inlineIdIndexes = [];
+        this.regexIdIndexes = [];
+        this.mochiCardsToEdit = [];
+        this.mochiCardIdsToDelete = [];
     }
 
-
     scanBeginEndCards() {
-        for (let card_match of this.contents.matchAll(this.settingsData.BEGIN_END_CARD)) {
+        for (let card_match of this.contents.matchAll(
+            this.settingsData.BEGIN_END_CARD
+        )) {
             // That second thing essentially gets the index of the end of the first capture group.
-            let [cardContent, position]: [string, number] = [card_match[1], card_match.index + card_match[0].indexOf(card_match[1]) + card_match[1].length]
+            let [cardContent, position]: [string, number] = [
+                card_match[1],
+                card_match.index +
+                card_match[0].indexOf(card_match[1]) +
+                card_match[1].length,
+            ];
             let mochiCard: IMochiCard | null = new BeginEndCard(
-                cardContent, this.settingsData.fieldsByTemplateName,
+                cardContent,
+                this.settingsData.fieldsByTemplateName,
                 this.settingsData.isCurlyCloze,
                 this.settingsData.isHighlightsToCloze,
                 this.formatter
@@ -256,38 +313,64 @@ export class CardainerFile extends AbstractCardainerFile {
                 this.url,
                 this.frozenFieldDict,
                 this.settingsData,
-                this.settingsData.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(card_match.index) : ""
-            )
+                this.settingsData.addContextBreadcrumb
+                    ? this.getContextBreadcrumbAtIndex(card_match.index)
+                    : ""
+            );
             if (!mochiCard) {
-                continue
+                continue;
             }
             if (mochiCard.id == null) {
                 // Need to make sure global_tags get added
-                mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
-                this.mochiCardsToAdd.push(mochiCard)
-                this.idIndexes.push(position)
-            } else if (!this.settingsData.existingMochiCardIds.includes(mochiCard.id)) {
+                mochiCard.tags.push(...this.globalTags.split(TAG_SEP));
+                this.mochiCardsToAdd.push(mochiCard);
+                this.idIndexes.push(position);
+            } else if (
+                !this.settingsData.existingMochiCardIds.includes(mochiCard.id)
+            ) {
                 if (mochiCard.id == CLOZE_ERROR) {
-                    continue
+                    continue;
                 }
                 // Need to show an error otherwise
                 else if (mochiCard.id == NOTE_TYPE_ERROR) {
-                    console.warn("Did not recognise note type ", mochiCard.template.name, " in file ", this.path)
+                    console.warn(
+                        "Did not recognise template name ",
+                        mochiCard.template.name,
+                        " in file ",
+                        this.path
+                    );
                 } else {
-                    console.warn("Note with id", mochiCard.id, " in file ", this.path, " does not exist in Anki!")
+                    console.warn(
+                        "Card with id",
+                        mochiCard.id,
+                        " in file ",
+                        this.path,
+                        " does not exist in mochi"
+                    );
                 }
-            } else if (mochiCard.runtimeProps.originalHash !== mochiCard.runtimeProps.currentHash) {
-                this.mochiCardsToEdit.push(mochiCard)
+            } else if (
+                mochiCard.runtimeProps.originalHash !==
+                mochiCard.runtimeProps.currentHash
+            ) {
+                this.mochiCardsToEdit.push(mochiCard);
             }
         }
     }
 
     scanInlineCards() {
-        for (let note_match of this.contents.matchAll(this.settingsData.INLINE_REGEXP)) {
-            let [note, position]: [string, number] = [note_match[1], note_match.index + note_match[0].indexOf(note_match[1]) + note_match[1].length]
+        for (let note_match of this.contents.matchAll(
+            this.settingsData.INLINE_REGEXP
+        )) {
+            let [note, position]: [string, number] = [
+                note_match[1],
+                note_match.index +
+                note_match[0].indexOf(note_match[1]) +
+                note_match[1].length,
+            ];
             // That second thing essentially gets the index of the end of the first capture group.
             let mochiCard: IMochiCard | null = new InlineCard(
-                note, this.settingsData.fieldsByTemplateName,
+                note,
+                this.settingsData.fieldsByTemplateName,
                 this.settingsData.isCurlyCloze,
                 this.settingsData.isHighlightsToCloze,
                 this.formatter
@@ -296,24 +379,34 @@ export class CardainerFile extends AbstractCardainerFile {
                 this.url,
                 this.frozenFieldDict,
                 this.settingsData,
-                this.settingsData.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(note_match.index) : ""
-            )
+                this.settingsData.addContextBreadcrumb
+                    ? this.getContextBreadcrumbAtIndex(note_match.index)
+                    : ""
+            );
             if (!mochiCard) {
-                continue
+                continue;
             }
             if (mochiCard.id == null) {
                 // Need to make sure global_tags get added
-                mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
-                this.inlineCardsToAdd.push(mochiCard)
-                this.inlineIdIndexes.push(position)
-            } else if (!this.settingsData.existingMochiCardIds.includes(mochiCard.id)) {
+                mochiCard.tags.push(...this.globalTags.split(TAG_SEP));
+                this.inlineCardsToAdd.push(mochiCard);
+                this.inlineIdIndexes.push(position);
+            } else if (
+                !this.settingsData.existingMochiCardIds.includes(mochiCard.id)
+            ) {
                 // Need to show an error
                 if (mochiCard.id == CLOZE_ERROR) {
-                    continue
+                    continue;
                 }
-                console.warn("Note with id", mochiCard.id, " in file ", this.path, " does not exist in Anki!")
+                console.warn(
+                    "Card with id",
+                    mochiCard.id,
+                    " in file ",
+                    this.path,
+                    " does not exist in mochi"
+                );
             } else {
-                this.mochiCardsToEdit.push(mochiCard)
+                this.mochiCardsToEdit.push(mochiCard);
             }
         }
     }
@@ -325,45 +418,68 @@ export class CardainerFile extends AbstractCardainerFile {
 
         for (let search_id of [true, false]) {
             for (let search_tags of [true, false]) {
-                let id_str = search_id ? ID_REGEXP_STR : ""
-                let tag_str = search_tags ? TAG_REGEXP_STR : ""
-                let regexp: RegExp = new RegExp(regexp_str + tag_str + id_str, 'gm')
-                for (let match of findMatchNotIgnored(regexp, this.contents, this.ignoreSpans)) {
-                    this.ignoreSpans.push([match.index, match.index + match[0].length])
+                let id_str = search_id ? ID_REGEXP_STR : "";
+                let tag_str = search_tags ? TAG_REGEXP_STR : "";
+                let regexp: RegExp = new RegExp(regexp_str + tag_str + id_str, "gm");
+                for (let match of findMatchNotIgnored(
+                    regexp,
+                    this.contents,
+                    this.ignoreSpans
+                )) {
+                    this.ignoreSpans.push([match.index, match.index + match[0].length]);
                     const mochiCard: IMochiCard | null = new RegexCard(
-                        match, cardTemplateName, this.settingsData.fieldsByTemplateName,
-                        search_tags, search_id, this.settingsData.isCurlyCloze, this.settingsData.isHighlightsToCloze, this.formatter
+                        match,
+                        cardTemplateName,
+                        this.settingsData.fieldsByTemplateName,
+                        search_tags,
+                        search_id,
+                        this.settingsData.isCurlyCloze,
+                        this.settingsData.isHighlightsToCloze,
+                        this.formatter
                     ).parseToMochiCard(
                         this.nestedDeckNames,
                         this.url,
                         this.frozenFieldDict,
                         this.settingsData,
-                        this.settingsData.addContextBreadcrumb ? this.getContextBreadcrumbAtIndex(match.index) : ""
-                    )
+                        this.settingsData.addContextBreadcrumb
+                            ? this.getContextBreadcrumbAtIndex(match.index)
+                            : ""
+                    );
                     if (!mochiCard) {
                         break;
                     }
 
                     if (search_id) {
-                        if (!(this.settingsData.existingMochiCardIds.includes(mochiCard.id))) {
+                        if (
+                            !this.settingsData.existingMochiCardIds.includes(mochiCard.id)
+                        ) {
                             if (mochiCard.id == CLOZE_ERROR) {
                                 // This means it wasn't actually a card! So we should remove it from ignore_spans
-                                this.ignoreSpans.pop()
-                                continue
+                                this.ignoreSpans.pop();
+                                continue;
                             }
-                            console.warn("Note with id", mochiCard.id, " in file ", this.path, " does not exist in Anki!")
-                        } else if (mochiCard.runtimeProps.originalHash !== mochiCard.runtimeProps.currentHash) {
-                            this.mochiCardsToEdit.push(mochiCard)
+                            console.warn(
+                                "Card with id",
+                                mochiCard.id,
+                                " in file ",
+                                this.path,
+                                " does not exist in mochi"
+                            );
+                        } else if (
+                            mochiCard.runtimeProps.originalHash !==
+                            mochiCard.runtimeProps.currentHash
+                        ) {
+                            this.mochiCardsToEdit.push(mochiCard);
                         }
                     } else {
                         if (mochiCard.id == CLOZE_ERROR) {
                             // This means it wasn't actually a card! So we should remove it from ignore_spans
-                            this.ignoreSpans.pop()
-                            continue
+                            this.ignoreSpans.pop();
+                            continue;
                         }
-                        mochiCard.tags.push(...this.globalTags.split(TAG_SEP))
-                        this.regexCardsToAdd.push(mochiCard)
-                        this.regexIdIndexes.push(match.index + match[0].length)
+                        mochiCard.tags.push(...this.globalTags.split(TAG_SEP));
+                        this.regexCardsToAdd.push(mochiCard);
+                        this.regexIdIndexes.push(match.index + match[0].length);
                     }
                 }
             }
@@ -371,64 +487,88 @@ export class CardainerFile extends AbstractCardainerFile {
     }
 
     /*
-    * Figures out what cards need to be added, deleted, updated
-    * */
+     * Figures out what cards need to be added, deleted, updated
+     * */
     scanFileForCardsCRUD(): ScanStats {
-        this.setupScan()
-        this.scanBeginEndCards()
-        this.scanInlineCards()
+        this.setupScan();
+        this.scanBeginEndCards();
+        this.scanInlineCards();
         for (let cardTemplateName in this.customCardTypeRegexps) {
-            const regexp_str: string = this.customCardTypeRegexps[cardTemplateName]
+            const regexp_str: string = this.customCardTypeRegexps[cardTemplateName];
             if (regexp_str) {
-
-                this.searchContentRegexpMatchCards(cardTemplateName, regexp_str)
+                this.searchContentRegexpMatchCards(cardTemplateName, regexp_str);
             }
         }
-        this.allTypeMochiCardsToAdd = this.mochiCardsToAdd.concat(this.inlineCardsToAdd).concat(this.regexCardsToAdd)
-        this.scanCardDeletions()
+        this.allTypeMochiCardsToAdd = this.mochiCardsToAdd
+            .concat(this.inlineCardsToAdd)
+            .concat(this.regexCardsToAdd);
+        this.scanCardDeletions();
 
         return {
             updated: this.mochiCardsToEdit.length,
             deleted: this.mochiCardIdsToDelete.length,
-            created: this.allTypeMochiCardsToAdd.length
-        }
+            created: this.allTypeMochiCardsToAdd.length,
+        };
     }
 
     fixNewLineIds() {
-        this.contents = this.contents.replace(double_regexp, "$1")
+        this.contents = this.contents.replace(double_regexp, "$1");
     }
 
     writeIDs() {
-        let normal_inserts: [number, string][] = []
-        this.idIndexes.forEach(
-            (id_position: number, index: number) => {
-                const identifier: string | null = this.mochiCardIds[index]
-                if (identifier) {
-                    normal_inserts.push([id_position, mochiCardIdToCardIdentifierToken(identifier, false, this.settingsData.comment)])
-                }
+        let normal_inserts: [number, string][] = [];
+        this.idIndexes.forEach((id_position: number, index: number) => {
+            const identifier: string | null = this.mochiCardIds[index];
+            if (identifier) {
+                normal_inserts.push([
+                    id_position,
+                    mochiCardIdToCardIdentifierToken(
+                        identifier,
+                        false,
+                        this.settingsData.comment
+                    ),
+                ]);
             }
-        )
-        let inline_inserts: [number, string][] = []
-        this.inlineIdIndexes.forEach(
-            (id_position: number, index: number) => {
-                const identifier: string | null = this.mochiCardIds[index + this.mochiCardsToAdd.length] //Since regular then inline
-                if (identifier) {
-                    inline_inserts.push([id_position, mochiCardIdToCardIdentifierToken(identifier, true, this.settingsData.comment)])
-                }
+        });
+        let inline_inserts: [number, string][] = [];
+        this.inlineIdIndexes.forEach((id_position: number, index: number) => {
+            const identifier: string | null =
+                this.mochiCardIds[index + this.mochiCardsToAdd.length]; //Since regular then inline
+            if (identifier) {
+                inline_inserts.push([
+                    id_position,
+                    mochiCardIdToCardIdentifierToken(
+                        identifier,
+                        true,
+                        this.settingsData.comment
+                    ),
+                ]);
             }
-        )
+        });
 
-        let regex_inserts: [number, string][] = []
-        this.regexIdIndexes.forEach(
-            (id_position: number, index: number) => {
-                const identifier: string | null = this.mochiCardIds[index + this.mochiCardsToAdd.length + this.inlineCardsToAdd.length] // Since regular then inline then regex
-                if (identifier) {
-                    regex_inserts.push([id_position, "\n" + mochiCardIdToCardIdentifierToken(identifier, false, this.settingsData.comment)])
-                }
+        let regex_inserts: [number, string][] = [];
+        this.regexIdIndexes.forEach((id_position: number, index: number) => {
+            const identifier: string | null =
+                this.mochiCardIds[
+                index + this.mochiCardsToAdd.length + this.inlineCardsToAdd.length
+                    ]; // Since regular then inline then regex
+            if (identifier) {
+                regex_inserts.push([
+                    id_position,
+                    "\n" +
+                    mochiCardIdToCardIdentifierToken(
+                        identifier,
+                        false,
+                        this.settingsData.comment
+                    ),
+                ]);
             }
-        )
+        });
 
-        this.contents = string_insert(this.contents, normal_inserts.concat(inline_inserts).concat(regex_inserts))
-        this.fixNewLineIds()
+        this.contents = string_insert(
+            this.contents,
+            normal_inserts.concat(inline_inserts).concat(regex_inserts)
+        );
+        this.fixNewLineIds();
     }
 }

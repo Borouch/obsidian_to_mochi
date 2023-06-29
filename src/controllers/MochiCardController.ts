@@ -1,6 +1,7 @@
 import {IMochiCard} from "@src/models/IMochiCard";
 import {MochiCardDTO, MochiCardMapper} from "@src/mappers/MochiCardMapper";
 import {BaseController} from "@src/controllers/BaseController";
+import {Controller} from "@src/controllers/Controller";
 
 export class MochiCardController extends BaseController<IMochiCard, MochiCardMapper, MochiCardDTO, MochiCardDTO> {
 

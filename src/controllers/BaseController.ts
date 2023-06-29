@@ -18,6 +18,24 @@ export abstract class BaseController<TModel,
         return dtos.map((dto) => this.mapperFactory().mapFromDTO(dto));
     }
 
+    public async bookmarkIndex() {
+        let allModels: TModel[] = []
+        let bookmark = '';
+        let config = {params: {bookmark: bookmark}}
+        while (true) {
+            const response = await Controller.index(this.RESOURCE, config);
+            if (!response) break
+            const dtos: TIndexDTO[] | null = this.parseResponse(this.ENTITIES, response) ?? []
+            bookmark = this.parseResponse('bookmark', response)
+            config.params.bookmark = bookmark
+            if (!dtos) break;
+            const models = dtos.map((dto) => this.mapperFactory().mapFromDTO(dto));
+            allModels.push(...models)
+            if (models.length <= 0 || !bookmark) break;
+        }
+        return allModels
+    }
+
     public async show(id: number | string, config: AxiosRequestConfig<any> = {}): Promise<TModel | null> {
         const response = await Controller.show(`${this.RESOURCE}/${id}`, config);
         if (!response) return null
@@ -49,11 +67,11 @@ export abstract class BaseController<TModel,
         return this.mapperFactory().mapFromDTO(updatedDto);
     }
 
-    protected abstract mapperFactory(): TMapper;
-
-    private parseResponse(key: string | undefined, response: AxiosResponse<any, any>) {
+    public parseResponse(key: string | undefined, response: AxiosResponse<any, any>) {
         if (!key) return response.data
         return response.data[key] ?? null;
     }
+
+    protected abstract mapperFactory(): TMapper;
 
 }

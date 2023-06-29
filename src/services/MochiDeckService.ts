@@ -2,11 +2,13 @@ import {IMochiDeck, MochiDeck} from "@src/models/IMochiDeck";
 import {MochiDeckStoreDTO} from "@src/mappers/MochiDeckMapper";
 import {ModelNotFoundError} from "@src/exceptions/ModelNotFoundError";
 import {MochiSyncService} from "@src/services/MochiSyncService";
+import {debug} from "@src/utils/Logger";
 
 export class MochiDeckService {
 
     public static async index() {
-        const decks = await MochiSyncService.mochiDeckController.index() ?? []
+        const decks = await MochiSyncService.mochiDeckController.bookmarkIndex() ?? []
+        debug({decks})
         MochiDeckService.injectParents(decks)
         return decks
     }

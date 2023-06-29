@@ -72,7 +72,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
         try {
 
             if (!this.settings.API_TOKEN) {
-                new Notice("Provide Mochi API key in order to start sync...",3000);
+                new Notice("Provide Mochi API key in order to start sync...", 3000);
 
                 return;
             }
@@ -80,7 +80,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
             new Notice("Scanning vault, check console for details...");
 
             MochiSyncService.mochiCards = await MochiCardService.indexCards();
-
+            debug({fetchedMochiCards: MochiSyncService.mochiCards})
             const cardainerFileSettingsData: CardainerFileSettingsData =
                 await pluginSettingsToCardainerFileSettings(
                     this.app,

@@ -6,7 +6,7 @@ import {MochiDeckService} from "@src/services/MochiDeckService";
 
 export class MochiCardService {
     public static async indexCards() {
-        return await MochiSyncService.mochiCardController.index()
+         return await MochiSyncService.mochiCardController.bookmarkIndex()
     }
 
     public static async storeCards(cards: IMochiCard[]): Promise<IMochiCard[]> {
