@@ -6,7 +6,7 @@ import {MochiSyncService} from "@src/services/MochiSyncService";
 
 export class CacheDataManager {
     public cacheData: CacheData
-
+    public areDefaultSettings = false
     private constructor(public plugin: ObsidianToMochiPlugin) {
 
     }
@@ -41,6 +41,7 @@ export class CacheDataManager {
     public async loadOrGenerateDefaultDataCache() {
         const cache: CacheData = await this.plugin.loadData();
         if (!cache) {
+            this.areDefaultSettings = true
             return await this.saveDefaultCacheData();
         }
         return cache;

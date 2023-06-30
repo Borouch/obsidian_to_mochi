@@ -114,6 +114,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
             const stats = manager.stats
             new Notice(`UPDATED: ${stats.updated}, DELETED: ${stats.deleted}, CREATED: ${stats.created}`, 3000)
         } catch (e) {
+            console.error({e})
             new Notice('Something went wrong! Check console for details')
         }
     }

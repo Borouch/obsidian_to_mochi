@@ -90,7 +90,7 @@ export class FormatConverter {
         fileLinkFieldId: string
     ): void {
         mochiCard.fieldById[fileLinkFieldId].value +=
-            '<br><a href="' + url + '" class="obsidian-link">Obsidian</a>';
+            '<br><br><a style="color:#beb029;" href="' + url + '" class="obsidian-link">Ref</a>';
     }
 
     appendFrozenFieldToMochiCardField(

@@ -2,6 +2,7 @@ import {MochiTemplateField} from "@src/models/MochiTemplateField";
 import {MochiSyncService} from "@src/services/MochiSyncService";
 import {ModelNotFoundError} from "@src/exceptions/ModelNotFoundError";
 import {MochiCardField} from "@src/models/IMochiCard";
+import {debug} from "@src/utils/Logger";
 
 export interface MochiTemplate {
     id: string;
@@ -35,6 +36,7 @@ export function findMochiTemplateFieldIdByName(fieldName: string, mochiTemplate:
             mochiTemplate.fields[mochiFieldId].name === fieldName
     );
     if (!mochiTemplateFieldId) {
+        debug({fieldName,mochiTemplate})
         throw new ModelNotFoundError("mochiTemplateField not found");
     }
     return mochiTemplateFieldId

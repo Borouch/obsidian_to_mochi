@@ -91,7 +91,7 @@ export class SettingsManager {
         const settings = this.plugin.settings
         for (const name of mochiTemplateNames) {
             settings["FILE_LINK_FIELDS"][name] =
-                this.plugin.cacheData.field_names_by_template_name[name][0];
+                this.plugin.cacheData.field_names_by_template_name[name][1];
         }
 
     }

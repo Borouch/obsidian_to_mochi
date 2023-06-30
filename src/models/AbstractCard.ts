@@ -77,6 +77,11 @@ export abstract class AbstractCard {
 
         });
 
+        mochiCard.content = MochiSyncService.makeContentFromMochiFields(
+            mochiCard.fieldById
+        );
+        mochiCard.runtimeProps.currentHash = getHash(mochiCard.content)
+
         if (url) {
             const fileLinkFieldsByCardTemplateNameDict =
                 data.fileLinkFieldsByCardTemplateName;
@@ -86,6 +91,7 @@ export abstract class AbstractCard {
                 fileLinkFieldName,
                 mochiTemplate
             );
+
             this.formatter.appendFileSourceLinkToMochiCardField(
                 mochiCard,
                 url,
@@ -106,6 +112,7 @@ export abstract class AbstractCard {
                 data.contextFieldByCardTemplateName
             );
         }
+
         if (data.shouldAddObsTags) {
             for (let id in mochiCard.fieldById) {
                 for (let match of mochiCard.fieldById[id].value.matchAll(OBS_TAG_REGEXP)) {
@@ -125,10 +132,6 @@ export abstract class AbstractCard {
             this.identifier = CLOZE_ERROR; //An error code that says "don't add this note!"
         }
 
-        mochiCard.content = MochiSyncService.makeContentFromMochiFields(
-            mochiCard.fieldById
-        );
-        mochiCard.runtimeProps.currentHash = getHash(mochiCard.content)
         return mochiCard
     }
 

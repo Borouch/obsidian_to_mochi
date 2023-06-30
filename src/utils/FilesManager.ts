@@ -1,4 +1,4 @@
-/*Class for managing a list of files, and their Anki requests.*/
+/*Class for managing a list of files, and their Mochirequests.*/
 import {CardainerFileSettingsData} from "../interfaces/ISettings";
 import {App, arrayBufferToBase64, CachedMetadata, TAbstractFile, TFile, TFolder,} from "obsidian";
 import {CardainerFile} from "../models/CardainerFile";

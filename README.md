@@ -31,13 +31,13 @@ Check out the [Wiki](https://github.com/Pseudonium/Obsidian_to_Anki/wiki)! It ha
 }
 </pre>
 
-7. Restart Anki to apply the above changes
-8. With Anki running in the background, load the plugin. This will generate the plugin settings.
+7. Restart Mochi to apply the above changes
+8. With Mochirunning in the background, load the plugin. This will generate the plugin settings.
 
 
-You shouldn't need Anki running to load Obsidian in the future, though of course you will need it for using the plugin!
+You shouldn't need Mochirunning to load Obsidian in the future, though of course you will need it for using the plugin!
 
-To run the plugin, look for an Anki icon on your ribbon (the place where buttons such as 'open Graph view' and 'open Quick Switcher' are).
+To run the plugin, look for an Mochiicon on your ribbon (the place where buttons such as 'open Graph view' and 'open Quick Switcher' are).
 For more information on use, please check out the [Wiki](https://github.com/Pseudonium/Obsidian_to_Anki/wiki)!
 
 ### Python script users

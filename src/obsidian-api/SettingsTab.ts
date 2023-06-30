@@ -16,7 +16,7 @@ const defaultDescs = {
         "Convert ==highlights== -> {highlights} to be processed by CurlyCloze.",
     "ID Comments": "Wrap note IDs in a HTML comment.",
     "Add Obsidian Tags":
-        "Interpret #tags in the fields of a note as Anki tags, removing them from the note text in Anki.",
+        "Interpret #tags in the fields of a note as Mochitags, removing them from the note text in Anki.",
 };
 
 export class SettingsTab extends PluginSettingTab {
@@ -334,14 +334,14 @@ export class SettingsTab extends PluginSettingTab {
         new Setting(action_buttons)
             .setName("Regenerate Note Type Table")
             .setDesc(
-                "Connect to Anki to regenerate the table with new templates, or get rid of deleted templates."
+                "Connect to Mochi to regenerate the table with new templates, or get rid of deleted templates."
             )
             .addButton((button) => {
                 button
                     .setButtonText("Regenerate")
                     .setClass("mod-cta")
                     .onClick(async () => {
-                        new Notice("Need to connect to Anki to update note types...");
+                        new Notice("Need to connect to Mochi to update note types...");
                         try {
 
                             await this.mochiPlugin.cacheDataManager.generateMochiConnectionDependentSettings()
@@ -423,7 +423,7 @@ export class SettingsTab extends PluginSettingTab {
         let {containerEl} = this;
 
         containerEl.empty();
-        containerEl.createEl("h2", {text: "Obsidian_to_Anki settings"});
+        containerEl.createEl("h2", {text: "Obsidian_to_Mochisettings"});
         containerEl.createEl("a", {
             text: "For more information check the wiki",
             href: "https://github.com/Pseudonium/Obsidian_to_Anki/wiki",
