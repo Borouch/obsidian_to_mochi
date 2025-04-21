@@ -25,9 +25,11 @@ let buildOptions = {
 };
 
 if (dev) {
+    // @ts-ignore
     let ctx = await esbuild.context(buildOptions);
     await ctx.watch();
     console.log('watching...');
 } else {
+    // @ts-ignore
     esbuild.build(buildOptions).catch(() => process.exit(1));
 }

@@ -52,7 +52,7 @@ let converter: Converter = new Converter({
     tasklists: true,
     simpleLineBreaks: true,
     requireSpaceBeforeHeadingText: true,
-    extensions: [showdownHighlight],
+    extensions: [()=>showdownHighlight({pre:false})],
 });
 
 function escapeHtml(unsafe: string): string {

@@ -19,6 +19,7 @@ export interface MochiCardDTO {
         [fieldId: string]: MochiCardField;
     };
     attachments?: MochiAttachmentDTO[];
+    "deprecated/attachments"?: MochiAttachmentDTO[];
     id?: string;
     reviews?: any[];
     "created-at"?: {
@@ -60,7 +61,7 @@ export class MochiCardMapper implements Mapper<IMochiCard, MochiCardDTO, MochiCa
             "template-id": model.templateId,
             pos: model.pos,
             fields: model.fieldById,
-            attachments: model.attachments ? model.attachments.map((m) => MochiAttachmentMapper.i.mapToDTO(m)) : [],
+            "deprecated/attachments": model.attachments ? model.attachments.map((m) => MochiAttachmentMapper.i.mapToDTO(m)) : [],
             "archived?": false,
             "review-reverse?": false
         };
